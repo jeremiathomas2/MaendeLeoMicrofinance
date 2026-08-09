@@ -16,7 +16,12 @@
     <div><h3 class="card-title">Account</h3><p class="card-sub">Identity and organization assignment</p></div>
   </div>
   <div class="profile-card">
-    <div class="profile-avatar">{{ profile.first_name|default:profile.username|slice:":1"|upper }}{{ profile.last_name|default:""|slice:":1"|upper }}</div>
+    <div class="profile-avatar photo-upload" data-avatar id="photoUpload" title="Change profile picture">
+      <img class="av-img" src="{% if profile.profile_photo %}{{ profile.profile_photo.url }}{% endif %}" alt="{{ profile.get_full_name|default:profile.username }}" {% if not profile.profile_photo %}style="display:none"{% endif %}>
+      <span class="av-initials" {% if profile.profile_photo %}style="display:none"{% endif %}>{{ profile.first_name|default:profile.username|slice:":1"|upper }}{{ profile.last_name|default:""|slice:":1"|upper }}</span>
+      <button type="button" class="photo-btn" aria-label="Change profile picture"><i class="fa-solid fa-camera"></i> Upload</button>
+      <input type="file" id="photoInput" accept="image/*" hidden>
+    </div>
     <div class="profile-info">
       <div class="profile-name">{{ profile.get_full_name|default:profile.username }}</div>
       <div class="profile-sub">
@@ -73,15 +78,28 @@
     </div>
     <form method="post">
       {% csrf_token %}
-      <div class="form-grid">
-        {% for field in password_form %}
+      <div class="pw-stack">
         <div class="form-group">
-          <label class="form-label">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<div class="cell-sub" style="margin-top:4px;">{{ field.help_text }}</div>{% endif %}
-          {% if field.errors %}<div class="form-error">{{ field.errors|striptags }}</div>{% endif %}
+          <label class="form-label">{{ password_form.old_password.label }}</label>
+          {{ password_form.old_password }}
+          {% if password_form.old_password.errors %}<div class="form-error">{{ password_form.old_password.errors|striptags }}</div>{% endif %}
         </div>
-        {% endfor %}
+
+        <div class="form-group">
+          <label class="form-label">{{ password_form.new_password1.label }}</label>
+          {{ password_form.new_password1 }}
+          {% if password_form.new_password1.errors %}<div class="form-error">{{ password_form.new_password1.errors|striptags }}</div>{% endif %}
+          {% if password_form.new_password1.help_text %}
+          <div class="pw-note"><i class="fa-solid fa-shield-halved"></i><span>{{ password_form.new_password1.help_text|linebreaksbr }}</span></div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ password_form.new_password2.label }}</label>
+          {{ password_form.new_password2 }}
+          {% if password_form.new_password2.help_text %}<div class="cell-sub">{{ password_form.new_password2.help_text }}</div>{% endif %}
+          {% if password_form.new_password2.errors %}<div class="form-error">{{ password_form.new_password2.errors|striptags }}</div>{% endif %}
+        </div>
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" type="submit" name="password_save"><i class="fa-solid fa-key"></i> Change Password</button>

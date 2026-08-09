@@ -4,8 +4,8 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.accounts.views import (
-    MaendeleoLoginView, mark_notifications_read, profile_page, splash, users_page,
-    users_toggle_status,
+    MaendeleoLoginView, mark_notifications_read, profile_page, profile_photo_upload, splash,
+    users_page, users_toggle_status,
 )
 from apps.accounting.views import accounting_page, expense_approve, expense_create, journal_create, statements
 from apps.audit.views import audit_export, audit_page
@@ -32,6 +32,7 @@ urlpatterns = [
     path('login/', MaendeleoLoginView.as_view(), name='login'),
     path('logout/', __import__('django.contrib.auth.views', fromlist=['LogoutView']).LogoutView.as_view(), name='logout'),
     path('profile/', profile_page, name='profile_page'),
+    path('profile/photo/', profile_photo_upload, name='profile_photo_upload'),
     path('notifications/read/', mark_notifications_read, name='mark_notifications_read'),
 
     path('dashboard/', dashboard, name='dashboard'),

@@ -23,7 +23,7 @@ def collections_page(request):
             'last_action': loan.collection_actions.first(),
         })
     actions = filter_by_scope(request.user, CollectionAction.objects.select_related(
-        'customer', 'loan', 'officer'), 'branch')
+        'customer', 'loan', 'officer'), 'loan__branch')
     context = {
         'cards': cards,
         'actions': actions[:50],

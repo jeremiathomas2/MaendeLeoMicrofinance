@@ -57,8 +57,8 @@
         {% for m in months %}
         <div class="bar-col">
           <div class="bar-stack">
-            <div class="bar bar-a" style="height:{{ m.disbursements|add:1 }}px;" title="{{ m.disbursements }} disbursements"></div>
-            <div class="bar bar-b" style="height:{{ m.collections|floatformat:0|add:1 }}px;" title="{{ m.collections }} collected"></div>
+            <div class="bar bar-a" style="height:{{ m.disb_pct }}%;" data-tooltip="{{ m.disbursements }} loans disbursed"></div>
+            <div class="bar bar-b" style="height:{{ m.coll_pct }}%;" data-tooltip="{{ m.collections|money }} collected"></div>
           </div>
           <div class="bar-label">{{ m.label }}</div>
         </div>

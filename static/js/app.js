@@ -403,4 +403,59 @@
       if (demoMenu) setDemoOpen(false);
     });
   });
+
+  /* ---------- profile photo realtime upload ---------- */
+  function csrfToken() {
+    var m = document.cookie.match(/csrftoken=([\w-]+)/);
+    if (m) return m[1];
+    var inp = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return inp ? inp.value : '';
+  }
+  function setProfilePhoto(url, t) {
+    document.querySelectorAll('[data-avatar]').forEach(function (el) {
+      var img = el.querySelector('img.av-img');
+      var init = el.querySelector('.av-initials');
+      if (img) { img.src = url + (t ? '?t=' + t : ''); img.style.display = ''; }
+      if (init) init.style.display = 'none';
+    });
+  }
+
+  var photoUpload = document.getElementById('photoUpload');
+  var photoInput = document.getElementById('photoInput');
+  if (photoUpload && photoInput) {
+    photoUpload.addEventListener('click', function (e) {
+      if (e.target.closest('.photo-btn')) photoInput.click();
+    });
+    photoInput.addEventListener('change', function () {
+      var file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type)) { alert('Please choose an image file.'); photoInput.value = ''; return; }
+      if (file.size > 5 * 1024 * 1024) { alert('Image is too large — maximum 5 MB.'); photoInput.value = ''; return; }
+
+      var fd = new FormData();
+      fd.append('photo', file);
+      photoUpload.classList.add('uploading');
+      fetch('/profile/photo/', {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken() }
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          photoUpload.classList.remove('uploading');
+          if (res.ok && res.d && res.d.ok) {
+            setProfilePhoto(res.d.url, Date.now());
+          } else {
+            alert((res.d && res.d.error) || 'Upload failed. Please try again.');
+            photoInput.value = '';
+          }
+        })
+        .catch(function () {
+          photoUpload.classList.remove('uploading');
+          alert('Upload failed. Please try again.');
+          photoInput.value = '';
+        });
+    });
+  }
 })();

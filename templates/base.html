@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="stylesheet" href="{% static 'css/main.css' %}?v=6">
 <script>
 /* Restore theme mode + custom colors before first paint (prevents flash). */
 (function () {
@@ -151,15 +151,17 @@
               <span class="u-name">{{ request.user.get_full_name|default:request.user.username }}</span>
               <span class="u-role">{{ user_role|default:"Staff" }} · {{ user_branch.name|default:"Head Office" }}</span>
             </div>
-            <div class="avatar" title="{{ request.user.get_full_name }}">
-              {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+            <div class="avatar" data-avatar title="{{ request.user.get_full_name }}">
+              <img class="av-img" src="{% if request.user.profile_photo %}{{ request.user.profile_photo.url }}{% endif %}" alt="" {% if not request.user.profile_photo %}style="display:none"{% endif %}>
+              <span class="av-initials" {% if request.user.profile_photo %}style="display:none"{% endif %}>{{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}</span>
             </div>
             <i class="fa-solid fa-chevron-down user-caret"></i>
           </button>
           <div class="dropdown-panel profile-panel" id="userPanel">
             <div class="profile-panel-head">
-              <div class="avatar lg" style="background:var(--accent-dim);color:var(--accent);">
-                {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+              <div class="avatar lg" data-avatar style="background:var(--accent-dim);color:var(--accent);">
+                <img class="av-img" src="{% if request.user.profile_photo %}{{ request.user.profile_photo.url }}{% endif %}" alt="" {% if not request.user.profile_photo %}style="display:none"{% endif %}>
+                <span class="av-initials" {% if request.user.profile_photo %}style="display:none"{% endif %}>{{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}</span>
               </div>
               <div>
                 <div class="pp-name">{{ request.user.get_full_name|default:request.user.username }}</div>
@@ -261,7 +263,7 @@
   </div>
 </aside>
 
-<script src="{% static 'js/app.js' %}"></script>
+<script src="{% static 'js/app.js' %}?v=2"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

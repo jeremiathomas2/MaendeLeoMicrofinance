@@ -3,8 +3,11 @@ from django.contrib.auth import update_session_auth_hash, views as auth_views
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.core.files.images import get_image_dimensions
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 
 from apps.accounts.models import User
 from apps.accounts.roles import ALL_ROLES
@@ -62,6 +65,25 @@ def users_toggle_status(request, user_id):
         target.save(update_fields=['is_active'])
         messages.success(request, f'{target.get_full_name()} {"activated" if target.is_active else "deactivated"}.')
     return redirect('users_page')
+
+
+@login_required
+@require_POST
+def profile_photo_upload(request):
+    """Upload or replace the signed-in user's profile photo (AJAX)."""
+    photo = request.FILES.get('photo')
+    if not photo:
+        return JsonResponse({'ok': False, 'error': 'No image file received.'}, status=400)
+    if photo.size > 5 * 1024 * 1024:
+        return JsonResponse({'ok': False, 'error': 'Image is too large — maximum 5 MB.'}, status=400)
+    if get_image_dimensions(photo) is None:
+        return JsonResponse({'ok': False, 'error': 'That file is not a valid image.'}, status=400)
+
+    user = request.user
+    user.profile_photo = photo
+    user.save(update_fields=['profile_photo'])
+    audit(user, 'USER_UPDATED', user, request=request, new={'profile_photo': 'updated'})
+    return JsonResponse({'ok': True, 'url': user.profile_photo.url})
 
 
 @login_required

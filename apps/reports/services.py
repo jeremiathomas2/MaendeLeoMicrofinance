@@ -93,10 +93,14 @@ def dashboard_kpis():
 
 
 def monthly_activity(months=6):
-    """Return disbursements and collections per month for the bar chart."""
-    from django.utils.dateparse import parse_date
-    result = []
+    """Return disbursements and collections per month for the bar chart.
+
+    Each row carries raw values plus percentages scaled against the peak
+    value so the bars render proportionally inside the chart height.
+    """
+    import calendar
     today = timezone.now().date()
+    result = []
     for offset in range(months - 1, -1, -1):
         year = today.year
         month = today.month - offset
@@ -105,8 +109,15 @@ def monthly_activity(months=6):
             year -= 1
         disb = Loan.objects.filter(disbursement_date__year=year, disbursement_date__month=month).count()
         coll = Repayment.objects.filter(payment_date__year=year, payment_date__month=month).aggregate(s=Sum('amount'))['s'] or ZERO
-        label = f'{month:02d}'
-        result.append({'label': label, 'disbursements': disb, 'collections': float(coll)})
+        result.append({
+            'label': calendar.month_abbr[month],
+            'disbursements': disb,
+            'collections': float(coll),
+        })
+    peak = max([max(r['disbursements'], r['collections']) for r in result] + [1])
+    for r in result:
+        r['disb_pct'] = round(r['disbursements'] / peak * 100)
+        r['coll_pct'] = round(r['collections'] / peak * 100)
     return result
 
 
