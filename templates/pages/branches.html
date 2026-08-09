@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Branches · MaendeLeo{% endblock %}
+{% block crumb_path %}Administration{% endblock %}
+{% block crumb_title %}Branches{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <button class="btn btn-primary" onclick="openModal('branchModal')"><i class="fa-solid fa-plus"></i> Add Branch</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Branch</th><th>Region</th><th>Contact</th><th>Active Loans</th><th>Gross Portfolio</th><th>PAR 30+</th><th>Customers</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for b in branches %}
+        {% with p=performance|get_item:b.id %}
+        <tr>
+          <td><div class="branch-cell"><span class="avatar sm">{{ b.name|slice:":1" }}</span><div><div class="cell-title">{{ b.name }}</div><div class="cell-sub">{{ b.code }}</div></div></div></td>
+          <td>{{ b.region|default:"—" }}</td>
+          <td>{{ b.phone|default:"—" }}<div class="cell-sub">{{ b.email|default:"" }}</div></td>
+          <td>{% if p %}{{ p.active_loans }}{% else %}0{% endif %}</td>
+          <td class="stat-amount">{% if p %}{{ p.gross|money }}{% else %}—{% endif %}</td>
+          <td>{% if p %}{% if p.par30_pct > 5 %}<span class="badge badge-danger">{{ p.par30_pct|pct }}</span>{% else %}<span class="badge badge-success">{{ p.par30_pct|pct }}</span>{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if p %}{{ p.customers }}{% else %}{{ b.customers.count }}{% endif %}</td>
+          <td>{% if b.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-muted">{{ b.get_status_display }}</span>{% endif %}</td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="8"><div class="empty-state">No branches yet.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="branchModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Add Branch</h3><button class="icon-btn" onclick="closeModal('branchModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'branch_create' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Code</label>{{ form.code }}</div>
+        <div class="form-field"><label>Name</label>{{ form.name }}</div>
+        <div class="form-field"><label>Region</label>{{ form.region }}</div>
+        <div class="form-field"><label>Phone</label>{{ form.phone }}</div>
+        <div class="form-field"><label>Email</label>{{ form.email }}</div>
+        <div class="form-field"><label>Opening date</label>{{ form.opening_date }}</div>
+        <div class="form-field"><label>Operating hours</label>{{ form.operating_hours }}</div>
+        <div class="form-field span-2"><label>Address</label>{{ form.address }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('branchModal')">Cancel</button>
+        <button class="btn btn-primary">Add Branch</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}{{ customer.full_name }} · MaendeLeo{% endblock %}
+{% block crumb_path %}Customers{% endblock %}
+{% block crumb_title %}{{ customer.full_name }}{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <a class="btn btn-outline" href="{% url 'customers_page' %}"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+  </div>
+</div>
+
+<div class="profile-card">
+  <div class="profile-avatar" style="background:var(--accent-dim);color:var(--accent);">{{ customer.initials }}</div>
+  <div class="profile-info">
+    <div class="profile-name">{{ customer.full_name }}
+      {% if customer.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>
+      {% elif customer.status == 'BLACKLISTED' %}<span class="badge badge-danger">Blacklisted</span>
+      {% else %}<span class="badge badge-muted">{{ customer.get_status_display }}</span>{% endif %}
+    </div>
+    <div class="profile-sub">{{ customer.customer_number }} · {{ customer.branch.name }} · {{ customer.get_gender_display }}{% if customer.date_of_birth %} · born {{ customer.date_of_birth|date:"d M Y" }}{% endif %}</div>
+    <div class="profile-contact">
+      <span><i class="fa-solid fa-phone"></i> {{ customer.phone|default:"—" }}</span>
+      <span><i class="fa-solid fa-envelope"></i> {{ customer.email|default:"—" }}</span>
+      <span><i class="fa-solid fa-id-card"></i> {{ customer.national_id|default:"—" }}</span>
+      <span><i class="fa-solid fa-briefcase"></i> {{ customer.occupation|default:"—" }}</span>
+    </div>
+  </div>
+  <div class="profile-stats">
+    <div class="pstat"><div class="stat-label">Credit Score</div><div class="pstat-value">{% if customer.credit_score %}<div class="score-ring lg" style="--score:{{ customer.credit_score }};"><span>{{ customer.credit_score }}</span></div>{% else %}—{% endif %}</div></div>
+    <div class="pstat"><div class="stat-label">Disposable Income</div><div class="pstat-value accent">{{ customer.disposable_income|money }}</div></div>
+    <div class="pstat"><div class="stat-label">Outstanding Balance</div><div class="pstat-value">{{ customer.outstanding_balance|money }}</div></div>
+    <div class="pstat"><div class="stat-label">Risk Rating</div><div class="pstat-value">
+      {% if customer.risk_rating == 'HIGH' or customer.risk_rating == 'CRITICAL' %}<span class="badge badge-danger">{{ customer.risk_rating }}</span>
+      {% elif customer.risk_rating == 'MEDIUM' %}<span class="badge badge-warning">{{ customer.risk_rating }}</span>
+      {% else %}<span class="badge badge-success">{{ customer.risk_rating }}</span>{% endif %}
+    </div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head"><div><h3 class="card-title">Loans</h3><p class="card-sub">Active and past lending</p></div><a class="btn btn-sm btn-primary" href="{% url 'loans_page' %}">View loans</a></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Loan #</th><th>Product</th><th>Principal</th><th>Outstanding</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for l in loans %}
+          <tr>
+            <td><span class="code">{{ l.loan_number }}</span></td>
+            <td>{{ l.product.name }}</td>
+            <td class="stat-amount">{{ l.principal|amount }}</td>
+            <td class="stat-amount">{{ l.outstanding_principal|amount }}</td>
+            <td><span class="badge {% if l.status == 'ACTIVE' %}badge-success{% elif l.status == 'OVERDUE' or l.status == 'PAR' %}badge-warning{% elif l.status == 'DEFAULT' or l.status == 'WRITTEN_OFF' %}badge-danger{% else %}badge-muted{% endif %}">{{ l.get_status_display }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="empty-state">No loans yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h3 class="card-title">Savings Accounts</h3><p class="card-sub">Deposits and balances</p></div></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Account</th><th>Product</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for a in accounts %}
+          <tr>
+            <td><span class="code">{{ a.account_number }}</span></td>
+            <td>{{ a.product.name }}</td>
+            <td class="stat-amount">{{ a.balance|amount }}</td>
+            <td>{% if a.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-muted">{{ a.get_status_display }}</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty-state">No savings accounts.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div><h3 class="card-title">Documents &amp; KYC</h3><p class="card-sub">
+      {% if customer.kyc_complete %}<span class="badge badge-success">KYC complete</span>{% else %}<span class="badge badge-warning">KYC pending</span>{% endif %}
+    </p></div>
+    <button class="btn btn-outline" onclick="openModal('docModal')"><i class="fa-solid fa-file-arrow-up"></i> Upload Document</button>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Document</th><th>Uploaded</th><th>By</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for d in customer.documents.all %}
+        <tr>
+          <td>{{ d.get_document_type_display }}</td>
+          <td>{{ d.upload_date|date:"d M Y" }}</td>
+          <td>{{ d.uploaded_by.get_full_name|default:"—" }}</td>
+          <td>
+            {% if d.verification_status == 'VERIFIED' %}<span class="badge badge-success">Verified</span>
+            {% elif d.verification_status == 'REJECTED' %}<span class="badge badge-danger">Rejected</span>
+            {% else %}<span class="badge badge-warning">{{ d.get_verification_status_display }}</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4"><div class="empty-state">No documents uploaded.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="docModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Upload Document</h3><button class="icon-btn" onclick="closeModal('docModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'customer_document_upload' customer.pk %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Document type</label>{{ doc_form.document_type }}</div>
+        <div class="form-field"><label>File</label>{{ doc_form.file }}</div>
+        <div class="form-field span-2"><label>Notes</label>{{ doc_form.notes }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('docModal')">Cancel</button>
+        <button class="btn btn-primary">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

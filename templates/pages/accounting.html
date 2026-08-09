@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Accounting · MaendeLeo{% endblock %}
+{% block crumb_path %}Operations{% endblock %}
+{% block crumb_title %}Accounting{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <div class="btn-group">
+        <a class="btn btn-outline" href="{% url 'statements' 'income' %}"><i class="fa-solid fa-sack-dollar"></i> Income Statement</a>
+        <a class="btn btn-outline" href="{% url 'statements' 'balance' %}"><i class="fa-solid fa-building-columns"></i> Balance Sheet</a>
+        <a class="btn btn-outline" href="{% url 'statements' 'cashflow' %}"><i class="fa-solid fa-money-bill-transfer"></i> Cash Flow</a>
+      </div>
+      {% if can_account %}
+      <button class="btn btn-outline" onclick="openModal('expenseModal')"><i class="fa-solid fa-receipt"></i> New Expense</button>
+      <button class="btn btn-primary" onclick="openModal('journalModal')"><i class="fa-solid fa-file-invoice-dollar"></i> Post Journal</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">Trial Balance</h3>
+      <p class="card-sub">
+        {% if balanced %}<span class="badge badge-success">Balanced</span>
+        {% else %}<span class="badge badge-danger">Out of balance</span>{% endif %}
+        Debits {{ total_debit|money }} = Credits {{ total_credit|money }}
+      </p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Account</th><th>Type</th><th class="ta-r">Debit</th><th class="ta-r">Credit</th><th class="ta-r">Balance</th></tr></thead>
+      <tbody>
+        {% for r in trial_balance %}
+        <tr>
+          <td><span class="code">{{ r.account.code }}</span></td>
+          <td>{{ r.account.name }}</td>
+          <td><span class="badge badge-muted">{{ r.account.get_account_type_display }}</span></td>
+          <td class="ta-r">{{ r.debit|amount }}</td>
+          <td class="ta-r">{{ r.credit|amount }}</td>
+          <td class="ta-r stat-amount">{{ r.balance|amount }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state">No accounts have activity yet.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-journals">Journal Entries <span class="tab-count">{{ journals|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-expenses">Expenses <span class="tab-count">{{ expenses|length }}</span></button>
+</div>
+
+<div class="tab-panel active" id="tab-journals">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Reference</th><th>Date</th><th>Description</th><th>Source</th><th>Branch</th><th class="ta-r">Debit</th><th class="ta-r">Credit</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for j in journals %}
+          <tr>
+            <td><span class="code">{{ j.reference }}</span></td>
+            <td>{{ j.entry_date|date:"d M Y" }}</td>
+            <td>{{ j.description|default:"—" }}</td>
+            <td><span class="badge badge-muted">{{ j.source_type|default:"Manual" }}</span></td>
+            <td>{{ j.branch.name|default:"—" }}</td>
+            <td class="ta-r stat-amount">{{ j.total_debit|amount }}</td>
+            <td class="ta-r stat-amount">{{ j.total_credit|amount }}</td>
+            <td>{% if j.status == 'POSTED' %}<span class="badge badge-success">Posted</span>{% else %}<span class="badge badge-warning">{{ j.get_status_display }}</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="empty-state">No journal entries yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-expenses">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Reference</th><th>Category</th><th>Vendor</th><th>Amount</th><th>Branch</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for e in expenses %}
+          <tr>
+            <td><span class="code">{{ e.reference }}</span></td>
+            <td>{{ e.category }}</td>
+            <td>{{ e.vendor|default:"—" }}</td>
+            <td class="stat-amount">{{ e.amount|money }}</td>
+            <td>{{ e.branch.name }}</td>
+            <td>{{ e.requested_by.get_full_name|default:"—" }}</td>
+            <td>
+              {% if e.approval_status == 'APPROVED' %}<span class="badge badge-success">Approved</span>
+              {% elif e.approval_status == 'PAID' %}<span class="badge badge-info">Paid</span>
+              {% elif e.approval_status == 'REJECTED' %}<span class="badge badge-danger">Rejected</span>
+              {% else %}<span class="badge badge-warning">{{ e.get_approval_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              {% if e.approval_status == 'PENDING' and can_account %}
+              <div class="row-actions">
+                <form method="post" action="{% url 'expense_approve' e.pk %}">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-success">Approve</button></form>
+                <form method="post" action="{% url 'expense_approve' e.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger">Reject</button></form>
+              </div>
+              {% elif e.approval_status == 'APPROVED' and not e.paid and can_account %}
+              <form method="post" action="{% url 'expense_approve' e.pk %}">{% csrf_token %}<input type="hidden" name="action" value="pay"><button class="btn btn-sm btn-info">Mark paid</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="empty-state">No expenses submitted.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if can_account %}
+<!-- Journal modal -->
+<div class="modal-overlay" id="journalModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Post Journal Entry</h3><button class="icon-btn" onclick="closeModal('journalModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'journal_create' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field span-2"><label>Description</label>{{ journal_form.description }}</div>
+        <div class="form-field"><label>Debit account</label>{{ journal_form.account }}</div>
+        <div class="form-field"><label>Credit account</label>{{ journal_form.counter_account }}</div>
+        <div class="form-field"><label>Debit amount</label>{{ journal_form.debit }}</div>
+        <div class="form-field"><label>Credit amount</label>{{ journal_form.credit }}</div>
+        <div class="form-field span-2"><label>Branch</label>{{ journal_form.branch }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('journalModal')">Cancel</button>
+        <button class="btn btn-primary">Post Entry</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Expense modal -->
+<div class="modal-overlay" id="expenseModal">
+  <div class="modal">
+    <div class="modal-head"><h3>New Expense Request</h3><button class="icon-btn" onclick="closeModal('expenseModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'expense_create' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Category</label>{{ expense_form.category }}</div>
+        <div class="form-field"><label>Vendor</label>{{ expense_form.vendor }}</div>
+        <div class="form-field"><label>Amount</label>{{ expense_form.amount }}</div>
+        <div class="form-field"><label>Branch</label>{{ expense_form.branch }}</div>
+        <div class="form-field span-2"><label>Description</label>{{ expense_form.description }}</div>
+        <div class="form-field span-2"><label>Receipt</label>{{ expense_form.receipt }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('expenseModal')">Cancel</button>
+        <button class="btn btn-primary">Submit Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

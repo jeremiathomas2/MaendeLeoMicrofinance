@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}My Profile · MaendeLeo{% endblock %}
+{% block crumb_path %}My Account{% endblock %}
+{% block crumb_title %}My Profile{% endblock %}
+{% block content %}
+
+<div class="section-head">
+  <div>
+    <h2>My Profile</h2>
+    <p>Personal details, role, and account security.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-head">
+    <div><h3 class="card-title">Account</h3><p class="card-sub">Identity and organization assignment</p></div>
+  </div>
+  <div class="profile-card">
+    <div class="profile-avatar">{{ profile.first_name|default:profile.username|slice:":1"|upper }}{{ profile.last_name|default:""|slice:":1"|upper }}</div>
+    <div class="profile-info">
+      <div class="profile-name">{{ profile.get_full_name|default:profile.username }}</div>
+      <div class="profile-sub">
+        <span class="badge badge-info">{{ user_role|default:"Staff" }}</span>
+        <span class="badge badge-muted">{{ staff_profile.branch_label|default:"Head Office" }}</span>
+      </div>
+      <div class="profile-contact">
+        {% if profile.email %}<span><i class="fa-solid fa-envelope"></i> {{ profile.email }}</span>{% endif %}
+        {% if profile.phone %}<span><i class="fa-solid fa-phone"></i> {{ profile.phone }}</span>{% endif %}
+        {% if profile.username %}<span><i class="fa-solid fa-user"></i> @{{ profile.username }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="pstat"><div class="stat-label">Member since</div><div class="pstat-value">{{ profile.date_joined|date:"M Y" }}</div></div>
+      <div class="pstat"><div class="stat-label">Last login</div><div class="pstat-value">{{ profile.last_login|date:"d M Y, H:i"|default:"—" }}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head">
+      <div><h3 class="card-title">Personal Details</h3><p class="card-sub">Update your name, email and phone</p></div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input type="text" class="input" name="first_name" value="{{ profile.first_name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input type="text" class="input" name="last_name" value="{{ profile.last_name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="input" name="email" value="{{ profile.email }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="text" class="input" name="phone" value="{{ profile.phone }}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" name="profile_save"><i class="fa-solid fa-floppy-disk"></i> Save Details</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3 class="card-title">Change Password</h3><p class="card-sub">Keep your account secure</p></div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in password_form %}
+        <div class="form-group">
+          <label class="form-label">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="cell-sub" style="margin-top:4px;">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="form-error">{{ field.errors|striptags }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" name="password_save"><i class="fa-solid fa-key"></i> Change Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

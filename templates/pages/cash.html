@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Cash &amp; Tellers · MaendeLeo{% endblock %}
+{% block crumb_path %}Operations{% endblock %}
+{% block crumb_title %}Cash &amp; Tellers{% endblock %}
+{% block content %}
+
+{% if my_session %}
+<div class="card accent-card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title"><i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Your Open Session</h3>
+      <p class="card-sub">Opened at {{ my_session.opening_time|time:"H:i" }} · {{ my_session.branch.name }}</p>
+    </div>
+    <div class="stat-amount">{{ my_session.expected_closing|money }}</div>
+  </div>
+  <form method="post" action="{% url 'session_reconcile' my_session.pk %}" class="inline-form">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field"><label>Actual closing cash</label><input type="number" name="actual_closing" step="0.01" min="0" required></div>
+      <div class="form-field"><label>Variance reason (if any)</label><input type="text" name="variance_reason"></div>
+    </div>
+    <button class="btn btn-primary">Submit for Reconciliation</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      {% if not my_session %}
+      <button class="btn btn-primary" onclick="openModal('openSessionModal')"><i class="fa-solid fa-vault"></i> Open Teller Session</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--success-bg);color:var(--success);"><i class="fa-solid fa-vault"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Teller Sessions</div>
+      <div class="stat-value">{{ sessions|length }}</div>
+      <div class="stat-sub">Across your branches</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--info-bg);color:var(--info);"><i class="fa-solid fa-building-columns"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Bank Accounts</div>
+      <div class="stat-value">{{ banks|length }}</div>
+      <div class="stat-sub">{{ banks.0.bank_name|default:"No banks configured" }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-sessions">Teller Sessions <span class="tab-count">{{ sessions|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-txn">Cash Transactions <span class="tab-count">{{ transactions|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-banks">Bank Accounts <span class="tab-count">{{ banks|length }}</span></button>
+</div>
+
+<div class="tab-panel active" id="tab-sessions">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Teller</th><th>Branch</th><th>Opened</th><th>Opening</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for s in sessions %}
+          <tr>
+            <td>{{ s.teller.get_full_name }}</td>
+            <td>{{ s.branch.name }}</td>
+            <td>{{ s.opening_time|date:"d M Y H:i" }}</td>
+            <td>{{ s.opening_balance|money }}</td>
+            <td class="stat-amount">{{ s.expected_closing|money }}</td>
+            <td>{{ s.actual_closing|money|default:"—" }}</td>
+            <td>{% if s.variance %}{% if s.variance < 0 %}<span class="badge badge-danger">{{ s.variance|amount }}</span>{% else %}<span class="badge badge-success">+{{ s.variance|amount }}</span>{% endif %}{% else %}—{% endif %}</td>
+            <td>
+              {% if s.status == 'OPEN' %}<span class="badge badge-success">Open</span>
+              {% elif s.status == 'RECONCILING' %}<span class="badge badge-warning">Reconciling</span>
+              {% else %}<span class="badge badge-muted">Closed</span>{% endif %}
+            </td>
+            <td>
+              {% if s.status == 'RECONCILING' %}
+              <form method="post" action="{% url 'session_close' s.pk %}">{% csrf_token %}
+                <input type="hidden" name="actual_closing" value="{{ s.actual_closing }}">
+                <button class="btn btn-sm btn-success">Close</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9"><div class="empty-state">No teller sessions yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-txn">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Reference</th><th>Type</th><th>Amount</th><th>Branch</th><th>Teller</th><th>Date</th><th>Description</th></tr></thead>
+        <tbody>
+          {% for t in transactions %}
+          <tr>
+            <td><span class="code">{{ t.reference }}</span></td>
+            <td>
+              {% if t.is_inflow %}<span class="badge badge-success">{{ t.get_transaction_type_display }}</span>
+              {% else %}<span class="badge badge-danger">{{ t.get_transaction_type_display }}</span>{% endif %}
+            </td>
+            <td class="stat-amount">{{ t.amount|money }}</td>
+            <td>{{ t.branch.name }}</td>
+            <td>{{ t.teller.get_full_name|default:"—" }}</td>
+            <td>{{ t.transaction_date|date:"d M Y" }}</td>
+            <td class="cell-sub">{{ t.description|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty-state">No cash transactions yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-banks">
+  <div class="grid-3">
+    {% for b in banks %}
+    <div class="card">
+      <div class="card-head">
+        <div><h3 class="card-title">{{ b.account_name }}</h3><p class="cell-sub">{{ b.bank_name }} · {{ b.get_account_type_display }}</p></div>
+        <span class="avatar" style="background:var(--info-bg);color:var(--info);"><i class="fa-solid fa-building-columns"></i></span>
+      </div>
+      <div class="detail-rows">
+        <div class="detail-row"><span>Account #</span><span class="code">{{ b.account_number }}</span></div>
+        <div class="detail-row"><span>Branch</span><span>{{ b.branch.name|default:"—" }}</span></div>
+        <div class="detail-row"><span>Balance</span><span class="stat-amount">{{ b.balance|money }}</span></div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty-state">No bank accounts configured.</div></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="openSessionModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Open Teller Session</h3><button class="icon-btn" onclick="closeModal('openSessionModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'session_open' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Branch</label>{{ open_form.branch }}</div>
+        <div class="form-field"><label>Opening balance</label>{{ open_form.opening_balance }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('openSessionModal')">Cancel</button>
+        <button class="btn btn-primary">Open Session</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

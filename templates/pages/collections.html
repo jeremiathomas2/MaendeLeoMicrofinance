@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Collections · MaendeLeo{% endblock %}
+{% block crumb_path %}Lending{% endblock %}
+{% block crumb_title %}Collections{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <button class="btn btn-primary" onclick="openModal('actionModal')"><i class="fa-solid fa-phone"></i> Record Follow-up</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div><h3 class="card-title">Delinquent Loans</h3><p class="card-sub">Loans with overdue or at-risk installments</p></div>
+    <span class="badge badge-danger lg">{{ cards|length }} loans</span>
+  </div>
+  <div class="collection-grid">
+    {% for c in cards %}
+    <div class="collection-card">
+      <div class="collection-top">
+        <div>
+          <div class="cell-title">{{ c.loan.customer.full_name }}</div>
+          <div class="cell-sub">{{ c.loan.loan_number }} · {{ c.loan.product.name }}</div>
+        </div>
+        {% if c.days_overdue >= 90 %}<span class="badge badge-danger">DEFAULT</span>
+        {% elif c.days_overdue >= 30 %}<span class="badge badge-warning">{{ c.days_overdue }}d overdue</span>
+        {% else %}<span class="badge badge-info">{{ c.days_overdue }}d overdue</span>{% endif %}
+      </div>
+      <div class="collection-mid">
+        <div class="coll-stat"><div class="stat-label">Outstanding</div><div class="stat-amount">{{ c.loan.total_outstanding|money }}</div></div>
+        <div class="coll-stat"><div class="stat-label">Next due</div><div>{{ c.due_date|date:"d M Y"|default:"—" }}</div></div>
+        <div class="coll-stat"><div class="stat-label">Status</div><div>{{ c.loan.get_status_display }}</div></div>
+      </div>
+      <div class="collection-foot">
+        {% if c.last_action %}
+        <span class="cell-sub">Last: {{ c.last_action.get_action_type_display }} · {{ c.last_action.date|date:"d M" }}</span>
+        {% else %}<span class="cell-sub">No follow-up yet</span>{% endif %}
+        <button class="btn btn-sm btn-outline" onclick="openModal('actionModal')">Action</button>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column:1/-1;"><div class="empty-state"><i class="fa-solid fa-circle-check"></i> No delinquent loans. Well done!</div></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><div><h3 class="card-title">Follow-up History</h3><p class="card-sub">All collection actions recorded</p></div></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Customer</th><th>Loan</th><th>Action</th><th>Officer</th><th>Promised</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for a in actions %}
+        <tr>
+          <td>{{ a.date|date:"d M Y" }}</td>
+          <td>{{ a.customer.full_name }}</td>
+          <td><span class="code">{{ a.loan.loan_number }}</span></td>
+          <td>{{ a.get_action_type_display }}</td>
+          <td>{{ a.officer.get_full_name }}</td>
+          <td>{% if a.promised_amount %}{{ a.promised_amount|money }}{% if a.promised_date %} <span class="cell-sub">by {{ a.promised_date|date:"d M" }}</span>{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if a.status == 'RESOLVED' %}<span class="badge badge-success">Resolved</span>{% else %}<span class="badge badge-warning">Open</span>{% endif %}</td>
+          <td>{% if a.status != 'RESOLVED' %}<form method="post" action="{% url 'collection_action_resolve' a.pk %}">{% csrf_token %}<button class="btn btn-sm btn-success">Mark resolved</button></form>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty-state">No follow-ups recorded.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" id="actionModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Record Collection Follow-up</h3><button class="icon-btn" onclick="closeModal('actionModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'collection_action_create' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Loan</label>{{ form.loan }}</div>
+        <div class="form-field"><label>Action type</label>{{ form.action_type }}</div>
+        <div class="form-field"><label>Promised date</label>{{ form.promised_date }}</div>
+        <div class="form-field"><label>Promised amount</label>{{ form.promised_amount }}</div>
+        <div class="form-field"><label>Follow-up date</label>{{ form.follow_up_date }}</div>
+        <div class="form-field span-2"><label>Notes</label>{{ form.notes }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('actionModal')">Cancel</button>
+        <button class="btn btn-primary">Record Action</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

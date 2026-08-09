@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Users &amp; Roles · MaendeLeo{% endblock %}
+{% block crumb_path %}Administration{% endblock %}
+{% block crumb_title %}Users &amp; Roles{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-form">
+      <span class="cell-sub">Role groups</span>
+      {% for r in roles %}<span class="badge badge-muted">{{ r.name }}</span>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>User</th><th>Username</th><th>Role</th><th>Primary Branch</th><th>Phone</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="branch-cell">
+              <span class="avatar sm" style="background:var(--accent-dim);color:var(--accent);">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|default:""|slice:":1"|upper }}</span>
+              <div>
+                <div class="cell-title">{{ u.get_full_name|default:u.username }}</div>
+                <div class="cell-sub">{{ u.email|default:"" }}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="code">{{ u.username }}</span></td>
+          <td><span class="badge badge-info">{{ u.role_name }}</span></td>
+          <td>{{ u.staff_profile.branch_label|default:"—" }}</td>
+          <td>{{ u.phone|default:"—" }}</td>
+          <td>
+            {% if u.is_active %}<span class="badge badge-success">Active</span>
+            {% else %}<span class="badge badge-danger">Inactive</span>{% endif %}
+          </td>
+          <td>
+            {% if not u.is_superuser %}
+            <form method="post" action="{% url 'users_toggle_status' u.id %}" onsubmit="return confirm('Toggle status for {{ u.get_full_name }}?')">
+              {% csrf_token %}
+              <button class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state">No users found.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

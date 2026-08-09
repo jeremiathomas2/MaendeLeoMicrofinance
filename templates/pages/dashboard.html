@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Dashboard · MaendeLeo{% endblock %}
+{% block crumb_path %}Overview{% endblock %}
+{% block crumb_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--accent-bg);color:var(--accent);"><i class="fa-solid fa-sack-dollar"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Gross Loan Portfolio</div>
+      <div class="stat-value">{{ portfolio.gross_portfolio|money }}</div>
+      <div class="stat-sub"><span class="trend-up"><i class="fa-solid fa-arrow-trend-up"></i></span> Active loans: {{ portfolio.active_loans }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--info-bg);color:var(--info);"><i class="fa-solid fa-coins"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Outstanding Principal</div>
+      <div class="stat-value">{{ portfolio.total_portfolio|money }}</div>
+      <div class="stat-sub">Net portfolio balance</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--danger-bg);color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Portfolio at Risk (PAR)</div>
+      <div class="stat-value">{{ par30_pct|pct }}</div>
+      <div class="stat-sub"><span class="stat-amount">{{ par.par_30_89.amount|money }}</span> overdue 30+ days</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:var(--success-bg);color:var(--success);"><i class="fa-solid fa-users"></i></div>
+    <div class="stat-body">
+      <div class="stat-label">Active Customers</div>
+      <div class="stat-value">{{ active_customers|floatformat:0 }}</div>
+      <div class="stat-sub">+{{ kpis.new_customers }} registered today</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 class="card-title">Collections &amp; Disbursements</h3>
+        <p class="card-sub">Last 6 months activity</p>
+      </div>
+      <div class="legend">
+        <span class="legend-dot" style="background:var(--accent);"></span>Disbursed
+        <span class="legend-dot" style="background:var(--success);"></span>Collected
+      </div>
+    </div>
+    <div class="chart-area">
+      <div class="bars" id="activityBars">
+        {% for m in months %}
+        <div class="bar-col">
+          <div class="bar-stack">
+            <div class="bar bar-a" style="height:{{ m.disbursements|add:1 }}px;" title="{{ m.disbursements }} disbursements"></div>
+            <div class="bar bar-b" style="height:{{ m.collections|floatformat:0|add:1 }}px;" title="{{ m.collections }} collected"></div>
+          </div>
+          <div class="bar-label">{{ m.label }}</div>
+        </div>
+        {% empty %}
+        <div class="empty-state">No activity yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 class="card-title">Portfolio Quality</h3>
+        <p class="card-sub">PAR aging buckets by outstanding principal</p>
+      </div>
+    </div>
+    <div class="par-rows">
+      <div class="par-row">
+        <div class="par-row-head"><span>Current</span><span class="stat-amount">{{ par.current.amount|money }}</span></div>
+        <div class="progress"><div class="progress-bar" style="width:{% widthratio par.current.amount portfolio.total_portfolio 100 %}%;background:var(--success);"></div></div>
+      </div>
+      <div class="par-row">
+        <div class="par-row-head"><span>PAR 1–29 days</span><span class="stat-amount">{{ par.par_1_29.amount|money }}</span></div>
+        <div class="progress"><div class="progress-bar" style="width:{% widthratio par.par_1_29.amount portfolio.total_portfolio 100 %}%;background:var(--warning);"></div></div>
+      </div>
+      <div class="par-row">
+        <div class="par-row-head"><span>PAR 30–89 days</span><span class="stat-amount">{{ par.par_30_89.amount|money }}</span></div>
+        <div class="progress"><div class="progress-bar" style="width:{% widthratio par.par_30_89.amount portfolio.total_portfolio 100 %}%;background:var(--danger);"></div></div>
+      </div>
+      <div class="par-row">
+        <div class="par-row-head"><span>PAR 90+ days</span><span class="stat-amount">{{ par.par_90.amount|money }}</span></div>
+        <div class="progress"><div class="progress-bar" style="width:{% widthratio par.par_90.amount portfolio.total_portfolio 100 %}%;background:var(--dark-danger);"></div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="kpi-mini">
+      <div><div class="stat-label">Overdue loans</div><div class="kpi-num danger">{{ kpis.overdue_loans }}</div></div>
+      <div><div class="stat-label">Pending applications</div><div class="kpi-num warning">{{ kpis.pending_apps }}</div></div>
+      <div><div class="stat-label">Loans disbursed</div><div class="kpi-num">{{ kpis.disbursed }}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 class="card-title">Today's Collections</h3>
+        <p class="card-sub">{{ today }}</p>
+      </div>
+      <div class="stat-amount">{{ kpis.collections_today|money }}</div>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Receipt</th><th>Customer</th><th>Loan</th><th class="ta-r">Amount</th></tr></thead>
+        <tbody>
+          {% for r in recent_repayments %}
+          <tr>
+            <td><span class="code">{{ r.receipt_number }}</span></td>
+            <td>{{ r.customer.full_name }}</td>
+            <td><span class="code">{{ r.loan.loan_number }}</span></td>
+            <td class="ta-r stat-amount">{{ r.amount|amount }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty-state">No repayments collected today.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 class="card-title">Recent Activity</h3>
+        <p class="card-sub">Audit trail snapshot</p>
+      </div>
+    </div>
+    <div class="activity-list">
+      {% for log in activity %}
+      <div class="activity-item">
+        <div class="activity-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="activity-body">
+          <div class="activity-text">{{ log.object_repr|default:log.get_action_display }}</div>
+          <div class="activity-meta">{{ log.user.get_full_name|default:"System" }} · {{ log.get_action_display }}</div>
+        </div>
+        <div class="activity-time">{{ log.timestamp|timesince }} ago</div>
+      </div>
+      {% empty %}
+      <div class="empty-state">No recent activity.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">Branch Performance</h3>
+      <p class="card-sub">Portfolio health per branch</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Branch</th><th>Active Loans</th><th>Disbursed</th><th>Gross Portfolio</th><th>PAR 30+</th><th>Active Customers</th></tr></thead>
+      <tbody>
+        {% for row in branches %}
+        <tr>
+          <td><div class="branch-cell"><span class="avatar sm">{{ row.branch.name|slice:":1" }}</span>{{ row.branch.name }}</div></td>
+          <td>{{ row.active_loans }}</td>
+          <td>{{ row.disbursed }}</td>
+          <td class="stat-amount">{{ row.gross|money }}</td>
+          <td>{% if row.par30_pct > 5 %}<span class="badge badge-danger">{{ row.par30_pct|pct }}</span>{% else %}<span class="badge badge-success">{{ row.par30_pct|pct }}</span>{% endif %}</td>
+          <td>{{ row.customers }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state">No branch data yet.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

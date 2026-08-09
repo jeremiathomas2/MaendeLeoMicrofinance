@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Income Statement · MaendeLeo{% endblock %}
+{% block crumb_path %}Accounting{% endblock %}
+{% block crumb_title %}Income Statement{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <form method="get" class="toolbar-form">
+      <input type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+      <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+      <button class="btn btn-outline">Apply</button>
+    </form>
+    <div class="toolbar-right"><a class="btn btn-outline" href="{% url 'accounting_page' %}"><i class="fa-solid fa-arrow-left"></i> Back to Accounting</a></div>
+  </div>
+</div>
+
+<div class="statement-sheet">
+  <div class="statement-head">
+    <div class="statement-logo">ML</div>
+    <div>
+      <h2>{{ organization.name|default:"MaendeLeo" }} — Income Statement</h2>
+      <p>For the period {{ start|date:"d M Y" }} to {{ end|date:"d M Y" }}</p>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead><tr><th>Revenue</th><th class="ta-r">Amount</th></tr></thead>
+    <tbody>
+      {% for item in data.income %}
+      <tr><td>{{ item.account.name }}</td><td class="ta-r stat-amount">{{ item.amount|money }}</td></tr>
+      {% empty %}
+      <tr><td colspan="2"><div class="empty-state">No income recorded in this period.</div></td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="statement-total"><td>Total revenue</td><td class="ta-r">{{ data.total_income|money }}</td></tr></tfoot>
+  </table>
+
+  <table class="table" style="margin-top:18px;">
+    <thead><tr><th>Operating Expenses</th><th class="ta-r">Amount</th></tr></thead>
+    <tbody>
+      {% for item in data.expense %}
+      <tr><td>{{ item.account.name }}</td><td class="ta-r stat-amount">{{ item.amount|money }}</td></tr>
+      {% empty %}
+      <tr><td colspan="2"><div class="empty-state">No expenses recorded in this period.</div></td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr class="statement-total"><td>Total expenses</td><td class="ta-r">{{ data.total_expense|money }}</td></tr></tfoot>
+  </table>
+
+  <div class="statement-net {% if data.net_income >= 0 %}net-pos{% else %}net-neg{% endif %}">
+    <span>Net {% if data.net_income >= 0 %}income{% else %}loss{% endif %}</span>
+    <span>{{ data.net_income|money }}</span>
+  </div>
+</div>
+
+{% endblock %}

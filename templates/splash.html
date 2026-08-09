@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}MaendeLeo · Loading{% endblock %}
+{% block standalone %}
+<div class="splash-screen" id="splashRedirect" data-url="{% url 'login' %}">
+  <div class="splash-brand">
+    <div class="splash-logo">ML</div>
+    <div>
+      <div class="splash-name">MaendeLeo</div>
+      <div class="splash-sub">Microfinance Management Information System</div>
+    </div>
+  </div>
+  <div class="splash-bar"><div></div></div>
+  <div class="splash-hint"><i class="fa-solid fa-circle-notch fa-spin"></i> Preparing your workspace…</div>
+</div>
+{% endblock %}

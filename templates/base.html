@@ -1,0 +1,225 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}MaendeLeo · Microfinance MIS{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+{% if request.user.is_authenticated %}
+<div class="app" id="app">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">ML</div>
+      <div>
+        <div class="brand-name">MaendeLeo</div>
+        <div class="brand-sub">Microfinance MIS</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-scroll">
+      <div class="nav-group">
+        <div class="nav-label">Overview</div>
+        <a class="nav-item{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}" href="{% url 'dashboard' %}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Customers</div>
+        <a class="nav-item{% if request.resolver_match.url_name == 'customers_page' or request.resolver_match.url_name == 'customer_detail' or request.resolver_match.url_name == 'customer_register' %} active{% endif %}" href="{% url 'customers_page' %}"><i class="fa-solid fa-users"></i><span>Customers &amp; Groups</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'savings_page' %} active{% endif %}" href="{% url 'savings_page' %}"><i class="fa-solid fa-piggy-bank"></i><span>Savings</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Lending</div>
+        <a class="nav-item{% if 'loans' in request.resolver_match.url_name or request.resolver_match.url_name == 'loan_application_detail' %} active{% endif %}" href="{% url 'loans_page' %}"><i class="fa-solid fa-hand-holding-dollar"></i><span>Loans</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'collections_page' %} active{% endif %}" href="{% url 'collections_page' %}"><i class="fa-solid fa-people-arrows"></i><span>Collections</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Operations</div>
+        <a class="nav-item{% if request.resolver_match.url_name == 'cash_page' %} active{% endif %}" href="{% url 'cash_page' %}"><i class="fa-solid fa-cash-register"></i><span>Cash &amp; Tellers</span></a>
+        <a class="nav-item{% if 'accounting' in request.resolver_match.url_name or 'statements' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'accounting_page' %}"><i class="fa-solid fa-scale-balanced"></i><span>Accounting</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Insight</div>
+        <a class="nav-item{% if 'report' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-column"></i><span>Reports</span></a>
+        <a class="nav-item{% if 'audit' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'audit_page' %}"><i class="fa-solid fa-shield-halved"></i><span>Audit Trail</span></a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Administration</div>
+        {% if request.user.is_superuser or perms.auth.change_user %}
+        <a class="nav-item{% if 'users' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'users_page' %}"><i class="fa-solid fa-user-gear"></i><span>Users &amp; Roles</span></a>
+        {% endif %}
+        <a class="nav-item{% if 'branches' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'branches_page' %}"><i class="fa-solid fa-code-branch"></i><span>Branches</span></a>
+        <a class="nav-item{% if 'settings' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'settings_page' %}"><i class="fa-solid fa-sliders"></i><span>System Settings</span></a>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button class="collapse-btn" id="collapseBtn" title="Collapse sidebar"><i class="fa-solid fa-angles-left"></i></button>
+      <div class="sidebar-foot-text">v1.0 · {{ user_branch.name|default:"Head Office" }}</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn" title="Toggle menu"><i class="fa-solid fa-bars"></i></button>
+      <div class="breadcrumb">
+        <div class="path">{% block crumb_path %}Overview{% endblock %}</div>
+        <h1>{% block crumb_title %}Dashboard{% endblock %}</h1>
+      </div>
+
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="globalSearch" type="text" placeholder="Search customers, loans, receipts, accounts…">
+      </div>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeBtn" title="Customize theme"><i class="fa-solid fa-palette"></i></button>
+
+        <div class="dropdown">
+          <button class="icon-btn rel" id="notifBtn" title="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            {% if unread_count %}<span class="notif-dot"></span>{% endif %}
+          </button>
+          <div class="dropdown-panel" id="notifPanel">
+            <div class="dropdown-head">
+              <span>Notifications</span>
+              <a href="{% url 'mark_notifications_read' %}" style="font-size:11.5px;font-weight:800;color:var(--accent);">Mark all read</a>
+            </div>
+            {% for n in unread_notifications %}
+            <a class="notif-item" href="{{ n.link|default:'#' }}">
+              <div class="n-icon" style="background:var(--info-bg);color:var(--info);"><i class="fa-solid fa-circle-info"></i></div>
+              <div>
+                <div class="n-title">{{ n.title }}</div>
+                {% if n.message %}<div class="n-msg">{{ n.message|truncatechars:70 }}</div>{% endif %}
+              </div>
+            </a>
+            {% empty %}
+            <div class="notif-empty"><i class="fa-regular fa-bell-slash"></i> No unread notifications</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="dropdown user-drop">
+          <button class="user-trigger" id="userBtn" title="Account menu">
+            <div class="user-meta">
+              <span class="u-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+              <span class="u-role">{{ user_role|default:"Staff" }} · {{ user_branch.name|default:"Head Office" }}</span>
+            </div>
+            <div class="avatar" title="{{ request.user.get_full_name }}">
+              {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+            </div>
+            <i class="fa-solid fa-chevron-down user-caret"></i>
+          </button>
+          <div class="dropdown-panel profile-panel" id="userPanel">
+            <div class="profile-panel-head">
+              <div class="avatar lg" style="background:var(--accent-dim);color:var(--accent);">
+                {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+              </div>
+              <div>
+                <div class="pp-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="pp-role">{{ user_role|default:"Staff" }} · {{ user_branch.name|default:"Head Office" }}</div>
+                {% if request.user.email %}<div class="pp-mail">{{ request.user.email }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="profile-menu">
+              <a class="menu-item" href="{% url 'profile_page' %}"><i class="fa-solid fa-user"></i> My Profile</a>
+              <a class="menu-item" href="{% url 'settings_page' %}"><i class="fa-solid fa-sliders"></i> System Settings</a>
+              <div class="menu-sep"></div>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="menu-item menu-logout" type="submit"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      {% if messages %}
+      <div class="messages">
+        {% for message in messages %}
+        <div class="msg msg-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+{% else %}
+  {% block standalone %}{% endblock %}
+{% endif %}
+
+<!-- ============================= THEME DRAWER ============================= -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3><i class="fa-solid fa-palette" style="color:var(--accent);margin-right:8px;"></i>Theme Studio</h3>
+    <button class="icon-btn" id="drawerClose"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <h4>Palette Presets</h4>
+      <div class="swatch-row" id="presetRow"></div>
+    </div>
+    <div class="drawer-section">
+      <h4>Custom Colors</h4>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--sidebar-bg);"></span>Sidebar color</label>
+        <input type="color" id="pickSidebar" value="#173C34">
+      </div>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--header-bg);"></span>Header color</label>
+        <input type="color" id="pickHeader" value="#FFFFFF">
+      </div>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--accent);"></span>Accent color</label>
+        <input type="color" id="pickAccent" value="#D9A441">
+      </div>
+    </div>
+    <div class="drawer-section">
+      <h4>Motion</h4>
+      <div class="opt-row">
+        <div><div class="opt-label">Hover &amp; transition animation</div><div class="opt-sub">Card lift, nav slide, button motion</div></div>
+        <button class="toggle on" id="animToggle"></button>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="opt-sub" style="margin-bottom:8px;">Transition speed</div>
+        <div class="speed-row">
+          <button class="speed-btn" data-speed="120">Fast</button>
+          <button class="speed-btn active" data-speed="220">Normal</button>
+          <button class="speed-btn" data-speed="380">Relaxed</button>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-section">
+      <h4>Layout</h4>
+      <div class="opt-row">
+        <div><div class="opt-label">Compact sidebar</div><div class="opt-sub">Collapse to icon-only navigation</div></div>
+        <button class="toggle" id="compactToggle"></button>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-outline" style="flex:1;" id="resetTheme">Reset to default</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="closeDrawer()">Done</button>
+  </div>
+</aside>
+
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

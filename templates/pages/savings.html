@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Savings · MaendeLeo{% endblock %}
+{% block crumb_path %}Customers{% endblock %}
+{% block crumb_title %}Savings{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      {% if can_operate %}
+      <button class="btn btn-outline" onclick="openModal('depositModal')"><i class="fa-solid fa-arrow-down"></i> Deposit</button>
+      <button class="btn btn-outline" onclick="openModal('withdrawModal')"><i class="fa-solid fa-arrow-up"></i> Withdraw</button>
+      <button class="btn btn-primary" onclick="openModal('openAccountModal')"><i class="fa-solid fa-plus"></i> Open Account</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid-3">
+  {% for p in products %}
+  <div class="card">
+    <div class="card-head">
+      <div><h3 class="card-title">{{ p.name }}</h3><p class="cell-sub">{{ p.code }}</p></div>
+      <span class="avatar" style="background:var(--accent-bg);color:var(--accent);"><i class="fa-solid fa-piggy-bank"></i></span>
+    </div>
+    <div class="detail-rows">
+      <div class="detail-row"><span>Interest (p.a.)</span><span>{{ p.interest_rate }}%</span></div>
+      <div class="detail-row"><span>Minimum opening</span><span>{{ p.minimum_opening_deposit|money }}</span></div>
+      <div class="detail-row"><span>Withdrawal fee</span><span>{{ p.withdrawal_fee|money }}</span></div>
+      <div class="detail-row"><span>Accounts</span><span>{{ p.accounts.count }}</span></div>
+    </div>
+    {% if p.description %}<div class="cell-sub" style="margin-top:8px;">{{ p.description }}</div>{% endif %}
+  </div>
+  {% empty %}
+  <div class="card"><div class="empty-state">No savings products configured.</div></div>
+  {% endfor %}
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-accounts">Accounts <span class="tab-count">{{ accounts|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-txn">Transactions <span class="tab-count">{{ transactions|length }}</span></button>
+</div>
+
+<div class="tab-panel active" id="tab-accounts">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Account</th><th>Customer</th><th>Product</th><th>Branch</th><th>Balance</th><th>Status</th><th>Opened</th></tr></thead>
+        <tbody>
+          {% for a in accounts %}
+          <tr>
+            <td><span class="code">{{ a.account_number }}</span></td>
+            <td><div class="branch-cell"><span class="avatar sm">{{ a.customer.initials }}</span><div><div class="cell-title">{{ a.customer.full_name }}</div></div></div></td>
+            <td>{{ a.product.name }}</td>
+            <td>{{ a.branch.name }}</td>
+            <td class="stat-amount">{{ a.balance|money }}</td>
+            <td>{% if a.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% elif a.status == 'FROZEN' %}<span class="badge badge-danger">Frozen</span>{% else %}<span class="badge badge-muted">{{ a.get_status_display }}</span>{% endif %}</td>
+            <td>{{ a.opening_date|date:"d M Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty-state">No savings accounts yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-txn">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Reference</th><th>Account</th><th>Type</th><th>Amount</th><th>Branch</th><th>Date</th><th>Description</th></tr></thead>
+        <tbody>
+          {% for t in transactions %}
+          <tr>
+            <td><span class="code">{{ t.reference }}</span></td>
+            <td><span class="code">{{ t.account.account_number }}</span></td>
+            <td>{% if t.transaction_type == 'DEPOSIT' %}<span class="badge badge-success"><i class="fa-solid fa-arrow-down"></i> Deposit</span>
+              {% elif t.transaction_type == 'WITHDRAWAL' %}<span class="badge badge-danger"><i class="fa-solid fa-arrow-up"></i> Withdrawal</span>
+              {% elif t.transaction_type == 'INTEREST_POSTING' %}<span class="badge badge-info">Interest</span>
+              {% else %}<span class="badge badge-muted">{{ t.get_transaction_type_display }}</span>{% endif %}</td>
+            <td class="stat-amount">{{ t.amount|money }}</td>
+            <td>{{ t.branch.name }}</td>
+            <td>{{ t.transaction_date|date:"d M Y" }}</td>
+            <td class="cell-sub">{{ t.description|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty-state">No transactions yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Open account modal -->
+<div class="modal-overlay" id="openAccountModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Open Savings Account</h3><button class="icon-btn" onclick="closeModal('openAccountModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'savings_open' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Customer</label>{{ open_form.customer }}</div>
+        <div class="form-field"><label>Product</label>{{ open_form.product }}</div>
+        <div class="form-field"><label>Opening deposit</label>{{ open_form.opening_deposit }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('openAccountModal')">Cancel</button>
+        <button class="btn btn-primary">Open Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Deposit modal -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Make Deposit</h3><button class="icon-btn" onclick="closeModal('depositModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'savings_deposit' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field span-2"><label>Account</label>{{ deposit_form.account }}</div>
+        <div class="form-field"><label>Amount</label>{{ deposit_form.amount }}</div>
+        <div class="form-field"><label>Description</label>{{ deposit_form.description }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('depositModal')">Cancel</button>
+        <button class="btn btn-success">Record Deposit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Withdraw modal -->
+<div class="modal-overlay" id="withdrawModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Make Withdrawal</h3><button class="icon-btn" onclick="closeModal('withdrawModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'savings_withdraw' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field span-2"><label>Account</label>{{ withdrawal_form.account }}</div>
+        <div class="form-field"><label>Amount</label>{{ withdrawal_form.amount }}</div>
+        <div class="form-field"><label>Description</label>{{ withdrawal_form.description }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('withdrawModal')">Cancel</button>
+        <button class="btn btn-danger">Withdraw</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

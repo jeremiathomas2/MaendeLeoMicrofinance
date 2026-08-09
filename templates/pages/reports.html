@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Reports · MaendeLeo{% endblock %}
+{% block crumb_path %}Insight{% endblock %}
+{% block crumb_title %}Reports{% endblock %}
+{% block content %}
+
+{% for cat, items in categories.items %}
+<div class="card">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">{{ cat|title }} Reports</h3>
+      <p class="card-sub">Generate and export analytical reports</p>
+    </div>
+  </div>
+  <div class="report-grid">
+    {% for slug, title, icon, desc in items %}
+    <a class="report-tile" href="{% url 'report_generate' slug %}">
+      <div class="report-icon"><i class="fa-solid {{ icon }}"></i></div>
+      <div>
+        <div class="report-title">{{ title }}</div>
+        <div class="cell-sub">{{ desc }}</div>
+      </div>
+      <i class="fa-solid fa-chevron-right report-arrow"></i>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% empty %}
+<div class="card"><div class="empty-state">No report definitions available.</div></div>
+{% endfor %}
+
+{% endblock %}

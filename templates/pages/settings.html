@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}System Settings · MaendeLeo{% endblock %}
+{% block crumb_path %}Administration{% endblock %}
+{% block crumb_title %}System Settings{% endblock %}
+{% block content %}
+
+<div class="section-head">
+  <div>
+    <h2>System Settings</h2>
+    <p>Institution configuration, business rules and operational parameters.</p>
+  </div>
+</div>
+
+{% if organization %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-head">
+    <div><h3 class="card-title">Institution Profile</h3><p class="card-sub">Configured organization details</p></div>
+    <span class="avatar lg" style="background:var(--accent-bg);color:var(--accent);"><i class="fa-solid fa-building-columns"></i></span>
+  </div>
+  <div class="profile-card">
+    <div class="profile-info">
+      <div class="profile-name">{{ organization.name }}</div>
+      <div class="profile-sub">{{ organization.address|default:"—" }}</div>
+      <div class="profile-contact">
+        <span><i class="fa-solid fa-phone"></i> {{ organization.phone|default:"—" }}</span>
+        <span><i class="fa-solid fa-envelope"></i> {{ organization.email|default:"—" }}</span>
+        <span><i class="fa-solid fa-id-card"></i> {{ organization.registration_number|default:"—" }}</span>
+      </div>
+    </div>
+    <div class="profile-stats">
+      <div class="pstat"><div class="stat-label">Currency</div><div class="pstat-value">{{ organization.currency }}</div></div>
+      <div class="pstat"><div class="stat-label">FY starts</div><div class="pstat-value">Month {{ organization.financial_year_start }}</div></div>
+      <div class="pstat"><div class="stat-label">Timezone</div><div class="pstat-value">{{ organization.timezone|default:"—" }}</div></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <div><h3 class="card-title">Business Rules</h3><p class="card-sub">Configurable system-wide settings — changes are audited</p></div>
+  </div>
+  <form method="post" action="{% url 'settings_save' %}">
+    {% csrf_token %}
+    <div class="settings-groups">
+    {% for cat in categories %}
+      <div class="settings-group">
+        <div class="settings-group-head">
+          <i class="fa-solid fa-gear"></i> {{ cat|title }}
+        </div>
+        <div class="settings-rows">
+          {% for s in settings %}
+          {% if s.category == cat %}
+          <div class="settings-row">
+            <div>
+              <div class="cell-title">{{ s.label|default:s.key|title }}</div>
+              <div class="cell-sub">{{ s.description|default:"—" }}</div>
+            </div>
+            <input class="setting-input" type="text" name="setting_{{ s.key }}" value="{{ s.value }}">
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

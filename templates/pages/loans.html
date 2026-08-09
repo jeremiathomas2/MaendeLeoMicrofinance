@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Loans · MaendeLeo{% endblock %}
+{% block crumb_path %}Lending{% endblock %}
+{% block crumb_title %}Loans{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-form">
+      <select onchange="location.href='?status='+this.value">
+        <option value="">All statuses</option>
+        {% for s, label in applications.0.STATUS_CHOICES %}<option value="{{ s }}" {% if request.GET.status == s %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="toolbar-right">
+      <a class="btn btn-primary" href="{% url 'loan_application_create' %}"><i class="fa-solid fa-plus"></i> New Application</a>
+    </div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-apps">Pipeline <span class="tab-count">{{ applications|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-loans">Active Loans <span class="tab-count">{{ loans|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-repayments">Repayments <span class="tab-count">{{ repayments|length }}</span></button>
+</div>
+
+<div class="tab-panel active" id="tab-apps">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Application</th><th>Customer</th><th>Product</th><th>Requested</th><th>Officer</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for a in applications %}
+          <tr>
+            <td><span class="code">{{ a.application_number }}</span><div class="cell-sub">{{ a.created_at|date:"d M Y" }}</div></td>
+            <td><div class="cell-title">{{ a.customer.full_name }}</div><div class="cell-sub">{{ a.customer.customer_number }}</div></td>
+            <td>{{ a.product.name }}</td>
+            <td class="stat-amount">{{ a.requested_amount|money }}</td>
+            <td>{{ a.loan_officer.get_full_name }}</td>
+            <td>
+              {% if a.status == 'APPROVED' or a.status == 'READY_FOR_DISBURSEMENT' %}<span class="badge badge-warning">{{ a.get_status_display }}</span>
+              {% elif a.status == 'REJECTED' or a.status == 'CANCELLED' %}<span class="badge badge-danger">{{ a.get_status_display }}</span>
+              {% elif a.status == 'DISBURSED' %}<span class="badge badge-success">{{ a.get_status_display }}</span>
+              {% else %}<span class="badge badge-info">{{ a.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                <a class="btn btn-sm btn-outline" href="{% url 'loan_application_detail' a.pk %}">Details</a>
+                {% if a.status == 'SUBMITTED' or a.status == 'UNDER_REVIEW' or a.status == 'CREDIT_ASSESSMENT' or a.status == 'RECOMMENDED' %}
+                  {% if can_approve %}<button class="btn btn-sm btn-primary" onclick="openApprove('{{ a.pk }}', '{{ a.application_number }}')">Approve</button>{% endif %}
+                {% endif %}
+                {% if a.status == 'APPROVED' or a.status == 'READY_FOR_DISBURSEMENT' %}
+                  {% if can_disburse %}<button class="btn btn-sm btn-success" onclick="openDisburse('{{ a.pk }}', '{{ a.application_number }}')">Disburse</button>{% endif %}
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7"><div class="empty-state">No loan applications yet. <a href="{% url 'loan_application_create' %}">Create one</a>.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-loans">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Loan #</th><th>Customer</th><th>Product</th><th>Principal</th><th>Outstanding</th><th>Next Due</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for l in loans %}
+          <tr>
+            <td><span class="code">{{ l.loan_number }}</span></td>
+            <td><div class="cell-title">{{ l.customer.full_name }}</div></td>
+            <td>{{ l.product.name }}</td>
+            <td class="stat-amount">{{ l.principal|amount }}</td>
+            <td class="stat-amount">{{ l.total_outstanding|amount }}</td>
+            <td>{{ l.next_due_date|default:"—" }}</td>
+            <td>
+              {% if l.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>
+              {% elif l.status == 'OVERDUE' or l.status == 'PAR' %}<span class="badge badge-warning">{{ l.get_status_display }}</span>
+              {% elif l.status == 'DEFAULT' or l.status == 'WRITTEN_OFF' %}<span class="badge badge-danger">{{ l.get_status_display }}</span>
+              {% else %}<span class="badge badge-muted">{{ l.get_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                {% if l.status in 'ACTIVE,OVERDUE,PAR,DEFAULT' %}<button class="btn btn-sm btn-success" onclick="openRepay('{{ l.pk }}', '{{ l.loan_number }}', '{{ l.total_outstanding }}')">Collect</button>{% endif %}
+                <a class="btn btn-sm btn-outline" href="{% url 'customer_detail' l.customer.pk %}">Customer</a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="empty-state">No active loans.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-repayments">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Receipt</th><th>Customer</th><th>Loan</th><th>Amount</th><th>Allocation</th><th>Method</th><th>Teller</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          {% for r in repayments %}
+          <tr>
+            <td><span class="code">{{ r.receipt_number }}</span></td>
+            <td>{{ r.customer.full_name }}</td>
+            <td><span class="code">{{ r.loan.loan_number }}</span></td>
+            <td class="stat-amount">{{ r.amount|money }}</td>
+            <td><span class="cell-sub">{{ r.allocation_summary }}</span></td>
+            <td>{{ r.get_payment_method_display }}</td>
+            <td>{{ r.teller.get_full_name|default:"—" }}</td>
+            <td>{{ r.payment_date|date:"d M Y" }}</td>
+            <td>{% if not r.reversed %}<form method="post" action="{% url 'repayment_reverse' r.pk %}" onsubmit="return confirm('Reverse this repayment?')">{% csrf_token %}<button class="btn btn-sm btn-danger">Reverse</button></form>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9"><div class="empty-state">No repayments recorded.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Approve modal -->
+<div class="modal-overlay" id="approveModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Approve Application <span class="code" id="approveApp"></span></h3><button class="icon-btn" onclick="closeModal('approveModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="" id="approveForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Amount to approve</label><input type="number" name="amount" step="0.01" min="0" required></div>
+        <div class="form-field"><label>Comments</label><input type="text" name="comments" placeholder="Approval note…"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('approveModal')">Cancel</button>
+        <button class="btn btn-primary">Approve</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Disburse modal -->
+<div class="modal-overlay" id="disburseModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Disburse <span class="code" id="disburseApp"></span></h3><button class="icon-btn" onclick="closeModal('disburseModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="" id="disburseForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field span-2"><label>Disbursement method</label>
+          <select name="method"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer</option><option value="MOBILE_MONEY">Mobile money</option><option value="CUSTOMER_ACCOUNT">Customer account</option></select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('disburseModal')">Cancel</button>
+        <button class="btn btn-success"><i class="fa-solid fa-money-bill-wave"></i> Disburse Loan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Repay modal -->
+<div class="modal-overlay" id="repayModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Collect Repayment · <span class="code" id="repayLoan"></span></h3><button class="icon-btn" onclick="closeModal('repayModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="" id="repayForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field span-2"><label>Amount received (outstanding: <span id="repayOutstanding"></span>)</label><input type="number" name="amount" step="0.01" min="0" required></div>
+        <div class="form-field"><label>Method</label>
+          <select name="method"><option value="CASH">Cash</option><option value="BANK">Bank transfer</option><option value="MOBILE">Mobile money</option></select>
+        </div>
+        <div class="form-field"><label>Reference</label><input type="text" name="external_reference" placeholder="e.g. M-PESA ref"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('repayModal')">Cancel</button>
+        <button class="btn btn-success"><i class="fa-solid fa-hand-holding-dollar"></i> Record Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function openApprove(pk, num) {
+  document.getElementById('approveApp').textContent = num;
+  document.getElementById('approveForm').action = '/loans/' + pk + '/approve/';
+  openModal('approveModal');
+}
+function openDisburse(pk, num) {
+  document.getElementById('disburseApp').textContent = num;
+  document.getElementById('disburseForm').action = '/loans/' + pk + '/disburse/';
+  openModal('disburseModal');
+}
+function openRepay(pk, num, outstanding) {
+  document.getElementById('repayLoan').textContent = num;
+  document.getElementById('repayOutstanding').textContent = outstanding;
+  document.getElementById('repayForm').action = '/loans/' + pk + '/repay/';
+  openModal('repayModal');
+}
+</script>
+{% endblock %}

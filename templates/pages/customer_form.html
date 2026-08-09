@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · MaendeLeo{% endblock %}
+{% block crumb_path %}Customers{% endblock %}
+{% block crumb_title %}{{ title }}{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <a class="btn btn-outline" href="{% url 'customers_page' %}"><i class="fa-solid fa-arrow-left"></i> Back to Customers</a>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:920px;">
+  <div class="card-head">
+    <div>
+      <h3 class="card-title">Customer Registration</h3>
+      <p class="card-sub">Personal, financial and KYC details (SRS section 11)</p>
+    </div>
+  </div>
+
+  {% if form.errors %}
+  <div class="form-errors">
+    <ul>{% for field in form %}{% for err in field.errors %}<li><strong>{{ field.label }}:</strong> {{ err }}</li>{% endfor %}{% endfor %}
+    {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'customer_register' %}">
+    {% csrf_token %}
+    <h4 class="form-section-title"><i class="fa-solid fa-user"></i> Personal Information</h4>
+    <div class="form-grid">
+      <div class="form-field span-2"><label>Full name *</label>{{ form.full_name }}</div>
+      <div class="form-field"><label>Gender *</label>{{ form.gender }}</div>
+      <div class="form-field"><label>Marital status</label>{{ form.marital_status }}</div>
+      <div class="form-field"><label>Date of birth</label>{{ form.date_of_birth }}</div>
+      <div class="form-field"><label>National ID (NIDA)</label>{{ form.national_id }}</div>
+      <div class="form-field"><label>Phone</label>{{ form.phone }}</div>
+      <div class="form-field"><label>Email</label>{{ form.email }}</div>
+      <div class="form-field span-2"><label>Physical address</label>{{ form.address }}</div>
+    </div>
+
+    <h4 class="form-section-title"><i class="fa-solid fa-briefcase"></i> Occupation &amp; Financial Profile</h4>
+    <div class="form-grid">
+      <div class="form-field"><label>Occupation</label>{{ form.occupation }}</div>
+      <div class="form-field"><label>Employer / Business</label>{{ form.employer }}</div>
+      <div class="form-field"><label>Monthly income</label>{{ form.monthly_income }}</div>
+      <div class="form-field"><label>Other income</label>{{ form.other_income }}</div>
+      <div class="form-field"><label>Monthly expenses</label>{{ form.monthly_expenses }}</div>
+      <div class="form-field"><label>Existing debts</label>{{ form.existing_debts }}</div>
+    </div>
+
+    <h4 class="form-section-title"><i class="fa-solid fa-building-columns"></i> Banking &amp; Assignment</h4>
+    <div class="form-grid">
+      <div class="form-field"><label>Bank name</label>{{ form.bank_name }}</div>
+      <div class="form-field"><label>Bank account</label>{{ form.bank_account_number }}</div>
+      <div class="form-field"><label>Branch</label>{{ form.branch }}</div>
+      <div class="form-field"><label>Add to group</label>{{ form.group }}</div>
+    </div>
+
+    <div class="form-actions">
+      <a class="btn btn-outline" href="{% url 'customers_page' %}">Cancel</a>
+      <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Register Customer</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

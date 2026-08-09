@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MaendeLeo &middot; Microfinance MIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --sidebar-bg:#173C34;
+  --sidebar-bg-2:#123029;
+  --sidebar-text:#CFE3DB;
+  --sidebar-text-dim:#8FAFA3;
+  --sidebar-active:#D9A441;
+  --header-bg:#FFFFFF;
+  --header-text:#17241F;
+  --accent:#D9A441;
+  --accent-dim:#F3E3C3;
+  --bg:#F5F6F3;
+  --surface:#FFFFFF;
+  --surface-2:#FAFBF9;
+  --border:#E5E8E3;
+  --text:#17241F;
+  --text-muted:#65726B;
+  --success:#2E7D5B;
+  --success-bg:#E4F3EC;
+  --warning:#B9791F;
+  --warning-bg:#FBF0DC;
+  --danger:#C13F3F;
+  --danger-bg:#FBE7E7;
+  --info:#2F6690;
+  --info-bg:#E4EEF5;
+  --radius:14px;
+  --radius-sm:8px;
+  --shadow:0 1px 2px rgba(23,36,31,.06), 0 8px 24px -12px rgba(23,36,31,.12);
+  --shadow-lift:0 20px 40px -16px rgba(23,36,31,.22);
+  --dur:220ms;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --font:'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sidebar-w:264px;
+  --sidebar-w-collapsed:78px;
+}
+[data-anim="off"] *{ transition-duration:0ms !important; animation-duration:0ms !important; }
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; font-family:var(--font); background:var(--bg); color:var(--text);
+  font-size:14.5px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{ font-family:var(--font); margin:0; letter-spacing:-0.01em; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:var(--font); cursor:pointer; }
+ul{ list-style:none; margin:0; padding:0; }
+::selection{ background:var(--accent-dim); }
+
+/* scrollbars */
+::-webkit-scrollbar{ width:9px; height:9px; }
+::-webkit-scrollbar-thumb{ background:#00000022; border-radius:20px; }
+::-webkit-scrollbar-thumb:hover{ background:#00000040; }
+
+/* ============================= LAYOUT ============================= */
+.app{ display:flex; min-height:100vh; }
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+  width:var(--sidebar-w); flex-shrink:0; position:fixed; inset:0 auto 0 0; z-index:40;
+  background:linear-gradient(180deg,var(--sidebar-bg),var(--sidebar-bg-2));
+  color:var(--sidebar-text); display:flex; flex-direction:column;
+  transition:width var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.app.collapsed .sidebar{ width:var(--sidebar-w-collapsed); }
+.sidebar-brand{
+  display:flex; align-items:center; gap:12px; padding:22px 20px; flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.brand-mark{
+  width:38px; height:38px; border-radius:11px; flex-shrink:0;
+  background:radial-gradient(circle at 30% 25%, var(--accent), #a9741f);
+  display:flex; align-items:center; justify-content:center; font-weight:800; color:#1c2620;
+  box-shadow:0 4px 10px -2px rgba(0,0,0,.35);
+}
+.brand-name{ font-weight:800; font-size:17px; color:#fff; white-space:nowrap; }
+.brand-sub{ font-size:11px; color:var(--sidebar-text-dim); white-space:nowrap; letter-spacing:.04em; text-transform:uppercase; }
+.app.collapsed .brand-name,.app.collapsed .brand-sub{ display:none; }
+
+.sidebar-scroll{ flex:1; overflow-y:auto; padding:14px 12px 20px; }
+.nav-group{ margin-bottom:6px; }
+.nav-label{
+  font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--sidebar-text-dim); padding:16px 12px 6px; white-space:nowrap;
+}
+.app.collapsed .nav-label{ opacity:0; height:10px; overflow:hidden; padding:10px 0 0; }
+.nav-item{
+  display:flex; align-items:center; gap:12px; padding:10px 12px; margin:2px 0;
+  border-radius:10px; color:var(--sidebar-text); font-weight:600; font-size:13.6px;
+  position:relative; cursor:pointer; white-space:nowrap; overflow:hidden;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease), padding-left var(--dur) var(--ease);
+}
+.nav-item i{ width:18px; text-align:center; font-size:15px; flex-shrink:0; color:var(--sidebar-text-dim); transition:color var(--dur) var(--ease); }
+.nav-item .badge{
+  margin-left:auto; background:rgba(255,255,255,.12); color:#fff; font-size:10.5px; font-weight:700;
+  padding:1px 7px; border-radius:20px;
+}
+.nav-item:hover{ background:rgba(255,255,255,.07); padding-left:17px; }
+.nav-item:hover i{ color:#fff; }
+.nav-item.active{ background:rgba(217,164,65,.16); color:#fff; }
+.nav-item.active i{ color:var(--accent); }
+.nav-item.active::before{
+  content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:4px; background:var(--accent);
+}
+.app.collapsed .nav-item span{ display:none; }
+.app.collapsed .nav-item{ justify-content:center; }
+.app.collapsed .nav-item:hover{ padding-left:12px; }
+
+.sidebar-foot{
+  padding:14px 16px; border-top:1px solid rgba(255,255,255,.08); flex-shrink:0;
+  display:flex; align-items:center; gap:10px;
+}
+.collapse-btn{
+  background:rgba(255,255,255,.06); border:none; color:var(--sidebar-text); width:34px; height:34px;
+  border-radius:9px; display:flex; align-items:center; justify-content:center; transition:background var(--dur) var(--ease);
+}
+.collapse-btn:hover{ background:rgba(255,255,255,.16); }
+.sidebar-foot-text{ font-size:11.5px; color:var(--sidebar-text-dim); }
+.app.collapsed .sidebar-foot-text{ display:none; }
+
+/* ---------- MAIN ---------- */
+.main{ margin-left:var(--sidebar-w); flex:1; min-width:0; display:flex; flex-direction:column; transition:margin-left var(--dur) var(--ease); }
+.app.collapsed .main{ margin-left:var(--sidebar-w-collapsed); }
+
+.topbar{
+  height:68px; background:var(--header-bg); color:var(--header-text); flex-shrink:0;
+  display:flex; align-items:center; gap:16px; padding:0 24px; position:sticky; top:0; z-index:30;
+  border-bottom:1px solid var(--border); backdrop-filter:blur(6px);
+}
+.icon-btn{
+  width:38px; height:38px; border-radius:10px; border:1px solid var(--border); background:var(--surface);
+  color:var(--header-text); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background var(--dur) var(--ease), transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.icon-btn:hover{ background:var(--surface-2); border-color:#00000022; transform:translateY(-1px); }
+.icon-btn:active{ transform:translateY(0); }
+.breadcrumb{ display:flex; flex-direction:column; gap:1px; margin-right:auto; min-width:0; }
+.breadcrumb .path{ font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.breadcrumb h1{ font-size:19px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.search-box{
+  display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:10px; padding:0 12px; height:38px; width:280px; flex-shrink:1; min-width:120px;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.search-box:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+.search-box i{ color:var(--text-muted); font-size:13px; }
+.search-box input{ border:none; outline:none; background:transparent; font-family:var(--font); font-size:13.5px; width:100%; color:var(--text); }
+
+.topbar-actions{ display:flex; align-items:center; gap:10px; }
+.notif-dot{
+  position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%; background:var(--danger);
+  border:2px solid var(--header-bg);
+}
+.icon-btn.rel{ position:relative; }
+.avatar{
+  width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,var(--accent),#a9741f);
+  display:flex; align-items:center; justify-content:center; font-weight:800; color:#231c0f; font-size:13px; flex-shrink:0;
+  cursor:pointer; transition:transform var(--dur) var(--ease);
+}
+.avatar:hover{ transform:scale(1.05); }
+.user-meta{ display:flex; flex-direction:column; line-height:1.25; cursor:pointer; }
+.user-meta .u-name{ font-weight:800; font-size:13.3px; }
+.user-meta .u-role{ font-size:11px; color:var(--text-muted); }
+
+/* ---------- CONTENT ---------- */
+.content{ padding:24px; max-width:1440px; width:100%; margin:0 auto; }
+.view{ display:none; animation:fadein .35s var(--ease); }
+.view.active{ display:block; }
+@keyframes fadein{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+.section-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+.section-head h2{ font-size:22px; font-weight:800; }
+.section-head p{ margin:2px 0 0; color:var(--text-muted); font-size:13px; }
+
+.btn{
+  display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:13.2px; padding:9px 16px;
+  border-radius:10px; border:1px solid transparent; transition:all var(--dur) var(--ease);
+}
+.btn-primary{ background:var(--accent); color:#241d0c; box-shadow:0 6px 16px -6px rgba(217,164,65,.6); }
+.btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 20px -6px rgba(217,164,65,.7); }
+.btn-ghost{ background:var(--surface); border-color:var(--border); color:var(--text); }
+.btn-ghost:hover{ background:var(--surface-2); border-color:#00000030; }
+.btn-outline{ background:transparent; border-color:var(--border); color:var(--text); }
+.btn-outline:hover{ background:var(--surface-2); }
+.btn-sm{ padding:6px 12px; font-size:12px; }
+
+/* KPI cards */
+.kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:20px; }
+.kpi-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  position:relative; overflow:hidden;
+}
+.kpi-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-lift); border-color:transparent; }
+.kpi-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.kpi-icon{
+  width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px;
+}
+.kpi-trend{ font-size:11.5px; font-weight:800; padding:3px 8px; border-radius:20px; display:flex; align-items:center; gap:4px; }
+.trend-up{ color:var(--success); background:var(--success-bg); }
+.trend-down{ color:var(--danger); background:var(--danger-bg); }
+.kpi-value{ font-size:25px; font-weight:800; letter-spacing:-.01em; }
+.kpi-label{ font-size:12.5px; color:var(--text-muted); font-weight:700; margin-top:2px; }
+
+/* generic card / panel */
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px;
+  transition:box-shadow var(--dur) var(--ease);
+}
+.card:hover{ box-shadow:var(--shadow); }
+.card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.card-head h3{ font-size:15.5px; font-weight:800; }
+.card-head .muted{ font-size:12px; color:var(--text-muted); }
+
+.grid-2{ display:grid; grid-template-columns:1.6fr 1fr; gap:16px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media(max-width:1100px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+/* bars chart */
+.bars{ display:flex; align-items:flex-end; gap:10px; height:160px; padding-top:10px; }
+.bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.bar-wrap{ width:100%; height:130px; display:flex; align-items:flex-end; gap:3px; }
+.bar{ flex:1; border-radius:5px 5px 2px 2px; transition:transform var(--dur) var(--ease), filter var(--dur) var(--ease); }
+.bar-col:hover .bar{ transform:scaleY(1.03); filter:brightness(1.08); }
+.bar-disb{ background:var(--accent); }
+.bar-coll{ background:#173C34; }
+.bar-month{ font-size:11px; color:var(--text-muted); font-weight:700; }
+.legend{ display:flex; gap:16px; font-size:12px; color:var(--text-muted); margin-top:6px; }
+.legend span{ display:flex; align-items:center; gap:6px; }
+.dot{ width:9px; height:9px; border-radius:3px; }
+
+/* ring */
+.ring-wrap{ display:flex; align-items:center; gap:18px; }
+.ring{
+  width:132px; height:132px; border-radius:50%; flex-shrink:0;
+  background:conic-gradient(var(--danger) 0 8%, var(--warning) 8% 20%, var(--accent) 20% 34%, var(--success) 34% 100%);
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.ring::before{ content:''; position:absolute; inset:14px; border-radius:50%; background:var(--surface); }
+.ring-center{ position:relative; text-align:center; }
+.ring-center .big{ font-size:20px; font-weight:800; }
+.ring-center .small{ font-size:10px; color:var(--text-muted); font-weight:700; }
+.ring-legend{ display:flex; flex-direction:column; gap:8px; font-size:12.5px; }
+.ring-legend li{ display:flex; align-items:center; gap:8px; justify-content:space-between; }
+.ring-legend .k{ display:flex; align-items:center; gap:8px; color:var(--text-muted); }
+
+/* table */
+.table-wrap{ overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; font-size:13.3px; }
+thead th{
+  text-align:left; font-size:10.8px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);
+  padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; font-weight:800;
+}
+tbody td{ padding:12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+tbody tr{ transition:background var(--dur) var(--ease); }
+tbody tr:hover{ background:var(--surface-2); }
+tbody tr:last-child td{ border-bottom:none; }
+.cell-strong{ font-weight:800; }
+.cell-muted{ color:var(--text-muted); font-size:12.3px; }
+
+.pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11.3px; font-weight:800; }
+.pill::before{ content:''; width:6px; height:6px; border-radius:50%; }
+.pill-success{ background:var(--success-bg); color:var(--success); } .pill-success::before{ background:var(--success); }
+.pill-warning{ background:var(--warning-bg); color:var(--warning); } .pill-warning::before{ background:var(--warning); }
+.pill-danger{ background:var(--danger-bg); color:var(--danger); } .pill-danger::before{ background:var(--danger); }
+.pill-info{ background:var(--info-bg); color:var(--info); } .pill-info::before{ background:var(--info); }
+.pill-neutral{ background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); } .pill-neutral::before{ background:var(--text-muted); }
+
+/* progress */
+.progress{ height:7px; border-radius:20px; background:var(--surface-2); overflow:hidden; border:1px solid var(--border); }
+.progress > div{ height:100%; border-radius:20px; background:var(--accent); transition:width .6s var(--ease); }
+
+/* activity feed */
+.feed li{ display:flex; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); }
+.feed li:last-child{ border-bottom:none; padding-bottom:0; }
+.feed-icon{ width:32px; height:32px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12.5px; }
+.feed-text{ font-size:13px; }
+.feed-time{ font-size:11px; color:var(--text-muted); margin-top:1px; }
+
+/* tabs */
+.tabbar{ display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto; }
+.tab-btn{
+  background:transparent; border:none; padding:11px 16px; font-weight:700; font-size:13.3px; color:var(--text-muted);
+  border-bottom:2.5px solid transparent; white-space:nowrap; transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.tab-btn:hover{ color:var(--text); }
+.tab-btn.active{ color:var(--accent); border-color:var(--accent); }
+.tab-panel{ display:none; animation:fadein .3s var(--ease); }
+.tab-panel.active{ display:block; }
+
+/* filters row */
+.filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.select, .input{
+  border:1px solid var(--border); background:var(--surface); border-radius:9px; padding:8px 12px; font-family:var(--font);
+  font-size:12.8px; color:var(--text); transition:border-color var(--dur) var(--ease);
+}
+.select:focus, .input:focus{ outline:none; border-color:var(--accent); }
+
+/* report grid */
+.report-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+.report-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  cursor:pointer;
+}
+.report-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow); }
+.report-card i{ font-size:18px; color:var(--accent); margin-bottom:10px; display:block; }
+.report-card h4{ font-size:13.6px; font-weight:800; margin-bottom:4px; }
+.report-card p{ font-size:11.8px; color:var(--text-muted); margin:0; }
+
+/* settings / theme drawer */
+.drawer-overlay{
+  position:fixed; inset:0; background:rgba(15,20,17,.45); z-index:60; opacity:0; pointer-events:none;
+  transition:opacity var(--dur) var(--ease); backdrop-filter:blur(2px);
+}
+.drawer-overlay.open{ opacity:1; pointer-events:auto; }
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; width:380px; max-width:92vw; background:var(--surface); z-index:61;
+  box-shadow:-20px 0 60px -20px rgba(0,0,0,.35); transform:translateX(100%); transition:transform var(--dur) var(--ease);
+  display:flex; flex-direction:column;
+}
+.drawer.open{ transform:translateX(0); }
+.drawer-head{ padding:20px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.drawer-head h3{ font-size:16px; font-weight:800; }
+.drawer-body{ padding:20px 22px; overflow-y:auto; flex:1; }
+.drawer-section{ margin-bottom:26px; }
+.drawer-section h4{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); font-weight:800; margin-bottom:12px; }
+.swatch-row{ display:flex; gap:10px; flex-wrap:wrap; }
+.swatch{
+  width:52px; height:52px; border-radius:12px; border:2px solid transparent; cursor:pointer; position:relative;
+  transition:transform var(--dur) var(--ease), border-color var(--dur) var(--ease); flex-shrink:0;
+}
+.swatch:hover{ transform:translateY(-2px) scale(1.04); }
+.swatch.active{ border-color:var(--text); }
+.swatch.active::after{ content:'\f00c'; font-family:'Font Awesome 6 Free'; font-weight:900; color:#fff; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; text-shadow:0 1px 3px rgba(0,0,0,.4); }
+.preset-name{ font-size:10.5px; color:var(--text-muted); text-align:center; margin-top:5px; width:52px; }
+.preset-item{ display:flex; flex-direction:column; align-items:center; }
+.color-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.color-row label{ font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.color-row input[type=color]{ width:38px; height:30px; border:1px solid var(--border); border-radius:8px; padding:0; background:none; cursor:pointer; }
+.color-dot-preview{ width:14px; height:14px; border-radius:4px; border:1px solid var(--border); }
+
+.toggle{ position:relative; width:42px; height:24px; border-radius:20px; background:var(--border); flex-shrink:0; transition:background var(--dur) var(--ease); border:none; }
+.toggle::after{ content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform var(--dur) var(--ease); }
+.toggle.on{ background:var(--accent); }
+.toggle.on::after{ transform:translateX(18px); }
+.opt-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.opt-row:last-child{ border-bottom:none; }
+.opt-row .opt-label{ font-weight:700; font-size:13px; }
+.opt-row .opt-sub{ font-size:11.3px; color:var(--text-muted); }
+
+.speed-row{ display:flex; gap:8px; }
+.speed-btn{
+  flex:1; padding:8px 0; border-radius:9px; border:1px solid var(--border); background:var(--surface-2); font-size:12px;
+  font-weight:700; transition:all var(--dur) var(--ease);
+}
+.speed-btn.active{ background:var(--accent); color:#241d0c; border-color:var(--accent); }
+
+.drawer-foot{ padding:16px 22px; border-top:1px solid var(--border); display:flex; gap:10px; }
+
+/* mobile overlay for sidebar */
+.sidebar-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:39; opacity:0; pointer-events:none; transition:opacity var(--dur) var(--ease); }
+.sidebar-overlay.open{ opacity:1; pointer-events:auto; }
+
+/* ============================= RESPONSIVE ============================= */
+@media(max-width:1024px){
+  .sidebar{ transform:translateX(-100%); width:var(--sidebar-w); }
+  .app.mobile-open .sidebar{ transform:translateX(0); }
+  .main{ margin-left:0 !important; }
+  .search-box{ display:none; }
+  .grid-2, .grid-3{ grid-template-columns:1fr; }
+}
+@media(max-width:640px){
+  .content{ padding:16px; }
+  .topbar{ padding:0 14px; gap:10px; }
+  .user-meta{ display:none; }
+  .kpi-grid{ grid-template-columns:1fr 1fr; }
+  .section-head h2{ font-size:19px; }
+  .breadcrumb h1{ font-size:16px; }
+}
+@media(max-width:420px){
+  .kpi-grid{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ============================= SIDEBAR ============================= -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">ML</div>
+      <div>
+        <div class="brand-name">MaendeLeo</div>
+        <div class="brand-sub">Microfinance MIS</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-scroll">
+      <div class="nav-group">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" data-view="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Customers</div>
+        <div class="nav-item" data-view="customers"><i class="fa-solid fa-users"></i><span>Customers &amp; Groups</span><span class="badge">1,284</span></div>
+        <div class="nav-item" data-view="savings"><i class="fa-solid fa-piggy-bank"></i><span>Savings</span></div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Lending</div>
+        <div class="nav-item" data-view="loans"><i class="fa-solid fa-hand-holding-dollar"></i><span>Loans</span><span class="badge">37</span></div>
+        <div class="nav-item" data-view="collections"><i class="fa-solid fa-people-arrows"></i><span>Collections</span></div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Operations</div>
+        <div class="nav-item" data-view="cash"><i class="fa-solid fa-cash-register"></i><span>Cash &amp; Tellers</span></div>
+        <div class="nav-item" data-view="accounting"><i class="fa-solid fa-scale-balanced"></i><span>Accounting</span></div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Insight</div>
+        <div class="nav-item" data-view="reports"><i class="fa-solid fa-chart-column"></i><span>Reports</span></div>
+        <div class="nav-item" data-view="audit"><i class="fa-solid fa-shield-halved"></i><span>Audit Trail</span></div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-label">Administration</div>
+        <div class="nav-item" data-view="admin"><i class="fa-solid fa-user-gear"></i><span>Users &amp; Roles</span></div>
+        <div class="nav-item" data-view="branches"><i class="fa-solid fa-code-branch"></i><span>Branches</span></div>
+        <div class="nav-item" data-view="settings"><i class="fa-solid fa-sliders"></i><span>System Settings</span></div>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button class="collapse-btn" id="collapseBtn" title="Collapse sidebar"><i class="fa-solid fa-angles-left"></i></button>
+      <div class="sidebar-foot-text">v1.0 &middot; Head Office</div>
+    </div>
+  </aside>
+
+  <!-- ============================= MAIN ============================= -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn" title="Toggle menu"><i class="fa-solid fa-bars"></i></button>
+
+      <div class="breadcrumb">
+        <div class="path" id="crumbPath">Overview</div>
+        <h1 id="crumbTitle">Dashboard</h1>
+      </div>
+
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="globalSearch" type="text" placeholder="Search customers, loans, receipts, accounts&hellip;">
+      </div>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeBtn" title="Customize theme"><i class="fa-solid fa-palette"></i></button>
+        <button class="icon-btn rel" title="Notifications"><i class="fa-regular fa-bell"></i><span class="notif-dot"></span></button>
+        <div class="user-meta">
+          <span class="u-name">Amina Kessy</span>
+          <span class="u-role">Branch Manager &middot; Dar es Salaam</span>
+        </div>
+        <div class="avatar">AK</div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ======================= DASHBOARD ======================= -->
+      <section class="view active" id="view-dashboard">
+        <div class="section-head">
+          <div>
+            <h2>Good morning, Amina</h2>
+            <p>Here&rsquo;s how the Dar es Salaam branch and the wider portfolio are performing today, 9 August 2026.</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline btn-sm"><i class="fa-solid fa-file-arrow-down"></i> Export</button>
+            <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Loan Application</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--info-bg);color:var(--info);"><i class="fa-solid fa-sack-dollar"></i></div>
+              <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-up"></i>4.2%</span></div>
+            <div class="kpi-value">TZS 8.42 Bn</div>
+            <div class="kpi-label">Gross Loan Portfolio</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--success-bg);color:var(--success);"><i class="fa-solid fa-users"></i></div>
+              <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-up"></i>2.1%</span></div>
+            <div class="kpi-value">1,284</div>
+            <div class="kpi-label">Active Customers</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--warning-bg);color:var(--warning);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <span class="kpi-trend trend-down"><i class="fa-solid fa-arrow-down"></i>0.6%</span></div>
+            <div class="kpi-value">6.8%</div>
+            <div class="kpi-label">Portfolio at Risk (PAR30)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-top"><div class="kpi-icon" style="background:var(--accent-dim);color:#8a6111;"><i class="fa-solid fa-vault"></i></div>
+              <span class="kpi-trend trend-up"><i class="fa-solid fa-arrow-up"></i>1.4%</span></div>
+            <div class="kpi-value">TZS 214.6 M</div>
+            <div class="kpi-label">Branch Cash Position</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-head">
+              <h3>Disbursements vs Collections</h3>
+              <span class="muted">Last 6 months</span>
+            </div>
+            <div class="bars" id="barsChart"></div>
+            <div class="legend">
+              <span><i class="dot" style="background:var(--accent);"></i>Disbursed</span>
+              <span><i class="dot" style="background:#173C34;"></i>Collected</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Portfolio Health</h3><span class="muted">By days overdue</span></div>
+            <div class="ring-wrap">
+              <div class="ring"><div class="ring-center"><div class="big">6.8%</div><div class="small">PAR 30</div></div></div>
+              <ul class="ring-legend">
+                <li><span class="k"><i class="dot" style="background:var(--success);"></i>Current</span><b>66%</b></li>
+                <li><span class="k"><i class="dot" style="background:var(--accent);"></i>PAR 1&ndash;29</span><b>14%</b></li>
+                <li><span class="k"><i class="dot" style="background:var(--warning);"></i>PAR 30&ndash;89</span><b>12%</b></li>
+                <li><span class="k"><i class="dot" style="background:var(--danger);"></i>PAR 90+</span><b>8%</b></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <h3>Branch Performance</h3><span class="muted">This month</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Branch</th><th>Active Loans</th><th>Disbursed</th><th>Collection Rate</th><th>PAR30</th></tr></thead>
+                <tbody id="branchTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Recent Activity</h3><span class="muted">Live feed</span></div>
+            <ul class="feed" id="activityFeed"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= CUSTOMERS ======================= -->
+      <section class="view" id="view-customers">
+        <div class="section-head">
+          <div><h2>Customers &amp; Groups</h2><p>Registration, KYC verification and group-lending management.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> Register Customer</button>
+        </div>
+
+        <div class="tabbar" data-tabgroup="customers">
+          <button class="tab-btn active" data-tab="cust-all">All Customers</button>
+          <button class="tab-btn" data-tab="cust-groups">Customer Groups</button>
+          <button class="tab-btn" data-tab="cust-kyc">KYC &amp; Documents</button>
+        </div>
+
+        <div class="tab-panel active" id="cust-all">
+          <div class="card">
+            <div class="filters">
+              <input class="input" placeholder="Search by name, phone, or National ID&hellip;" style="min-width:240px;">
+              <select class="select"><option>All Branches</option><option>Dar es Salaam</option><option>Moshi</option><option>Arusha</option><option>Mwanza</option></select>
+              <select class="select"><option>All Statuses</option><option>Active</option><option>Inactive</option><option>Dormant</option></select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Customer #</th><th>Name</th><th>Branch</th><th>Phone</th><th>Product</th><th>Outstanding</th><th>Risk</th><th>Status</th></tr></thead>
+                <tbody id="customersTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="cust-groups">
+          <div class="grid-3" id="groupsGrid"></div>
+        </div>
+
+        <div class="tab-panel" id="cust-kyc">
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Customer</th><th>Document</th><th>Uploaded</th><th>Verified By</th><th>Status</th></tr></thead>
+                <tbody id="kycTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= SAVINGS ======================= -->
+      <section class="view" id="view-savings">
+        <div class="section-head">
+          <div><h2>Savings</h2><p>Products, member accounts and transaction history.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Open Account</button>
+        </div>
+        <div class="tabbar" data-tabgroup="savings">
+          <button class="tab-btn active" data-tab="sav-products">Products</button>
+          <button class="tab-btn" data-tab="sav-accounts">Accounts</button>
+          <button class="tab-btn" data-tab="sav-txn">Transactions</button>
+        </div>
+        <div class="tab-panel active" id="sav-products">
+          <div class="grid-3" id="savingsProductGrid"></div>
+        </div>
+        <div class="tab-panel" id="sav-accounts">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Account #</th><th>Customer</th><th>Product</th><th>Branch</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody id="savingsAccTable"></tbody>
+          </table></div></div>
+        </div>
+        <div class="tab-panel" id="sav-txn">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Ref</th><th>Account</th><th>Type</th><th>Amount</th><th>Date</th><th>Branch</th></tr></thead>
+            <tbody id="savingsTxnTable"></tbody>
+          </table></div></div>
+        </div>
+      </section>
+
+      <!-- ======================= LOANS ======================= -->
+      <section class="view" id="view-loans">
+        <div class="section-head">
+          <div><h2>Loans</h2><p>Applications, credit assessment, approval and active loan monitoring.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Application</button>
+        </div>
+        <div class="tabbar" data-tabgroup="loans">
+          <button class="tab-btn active" data-tab="loan-apps">Applications</button>
+          <button class="tab-btn" data-tab="loan-credit">Credit Assessment</button>
+          <button class="tab-btn" data-tab="loan-approval">Approvals</button>
+          <button class="tab-btn" data-tab="loan-active">Active Loans</button>
+          <button class="tab-btn" data-tab="loan-repay">Repayments</button>
+        </div>
+
+        <div class="tab-panel active" id="loan-apps">
+          <div class="card">
+            <div class="filters">
+              <select class="select"><option>All Products</option><option>Business Loan</option><option>Salary Loan</option><option>Agricultural Loan</option><option>Group Loan</option></select>
+              <select class="select"><option>All Statuses</option><option>Draft</option><option>Submitted</option><option>Under Review</option><option>Recommended</option></select>
+              <select class="select"><option>All Officers</option><option>J. Mrema</option><option>F. Shirima</option><option>H. Bakari</option></select>
+            </div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>App #</th><th>Customer</th><th>Product</th><th>Amount</th><th>Officer</th><th>Branch</th><th>Status</th><th></th></tr></thead>
+              <tbody id="loanAppTable"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="loan-credit">
+          <div class="card">
+            <div class="card-head"><h3>Credit Score Model</h3><span class="muted">Configurable weighting</span></div>
+            <div id="creditWeights"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="loan-approval">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>App #</th><th>Customer</th><th>Amount</th><th>Authority Required</th><th>Recommended By</th><th>Status</th></tr></thead>
+            <tbody id="approvalTable"></tbody>
+          </table></div></div>
+        </div>
+
+        <div class="tab-panel" id="loan-active">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Loan #</th><th>Customer</th><th>Product</th><th>Principal</th><th>Outstanding</th><th>Next Due</th><th>PAR</th></tr></thead>
+            <tbody id="activeLoansTable"></tbody>
+          </table></div></div>
+        </div>
+
+        <div class="tab-panel" id="loan-repay">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Receipt #</th><th>Customer</th><th>Loan #</th><th>Amount</th><th>Allocation</th><th>Teller</th><th>Date</th></tr></thead>
+            <tbody id="repaymentTable"></tbody>
+          </table></div></div>
+        </div>
+      </section>
+
+      <!-- ======================= COLLECTIONS ======================= -->
+      <section class="view" id="view-collections">
+        <div class="section-head"><div><h2>Collections</h2><p>Field follow-up queue for overdue and at-risk customers.</p></div></div>
+        <div class="grid-3" id="collectionsGrid"></div>
+      </section>
+
+      <!-- ======================= CASH & TELLERS ======================= -->
+      <section class="view" id="view-cash">
+        <div class="section-head">
+          <div><h2>Cash &amp; Tellers</h2><p>Teller sessions, cash transactions and bank account reconciliation.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-lock-open"></i> Open Session</button>
+        </div>
+        <div class="tabbar" data-tabgroup="cash">
+          <button class="tab-btn active" data-tab="cash-sessions">Teller Sessions</button>
+          <button class="tab-btn" data-tab="cash-txn">Cash Transactions</button>
+          <button class="tab-btn" data-tab="cash-bank">Bank Accounts</button>
+        </div>
+        <div class="tab-panel active" id="cash-sessions">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Teller</th><th>Branch</th><th>Opening</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Status</th></tr></thead>
+            <tbody id="tellerTable"></tbody>
+          </table></div></div>
+        </div>
+        <div class="tab-panel" id="cash-txn">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Txn #</th><th>Type</th><th>Amount</th><th>Branch</th><th>Teller</th><th>Time</th></tr></thead>
+            <tbody id="cashTxnTable"></tbody>
+          </table></div></div>
+        </div>
+        <div class="tab-panel" id="cash-bank">
+          <div class="grid-3" id="bankGrid"></div>
+        </div>
+      </section>
+
+      <!-- ======================= ACCOUNTING ======================= -->
+      <section class="view" id="view-accounting">
+        <div class="section-head"><div><h2>Accounting</h2><p>Chart of accounts, journal entries, general ledger and statements.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Journal Entry</button>
+        </div>
+        <div class="tabbar" data-tabgroup="acct">
+          <button class="tab-btn active" data-tab="acct-coa">Chart of Accounts</button>
+          <button class="tab-btn" data-tab="acct-journal">Journal Entries</button>
+          <button class="tab-btn" data-tab="acct-gl">General Ledger</button>
+          <button class="tab-btn" data-tab="acct-stmt">Statements</button>
+        </div>
+        <div class="tab-panel active" id="acct-coa">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Code</th><th>Account</th><th>Type</th><th>Balance</th></tr></thead>
+            <tbody id="coaTable"></tbody>
+          </table></div></div>
+        </div>
+        <div class="tab-panel" id="acct-journal">
+          <div class="card"><div class="table-wrap"><table>
+            <thead><tr><th>Ref</th><th>Date</th><th>Account</th><th>Debit</th><th>Credit</th><th>Status</th></tr></thead>
+            <tbody id="journalTable"></tbody>
+          </table></div></div>
+        </div>
+        <div class="tab-panel" id="acct-gl">
+          <div class="card">
+            <div class="card-head"><h3>Trial Balance Summary</h3><span class="muted">As of today</span></div>
+            <div id="trialBalance"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="acct-stmt">
+          <div class="grid-3">
+            <div class="card"><h3 style="margin-bottom:10px;">Income Statement</h3><p class="muted" style="color:var(--text-muted);font-size:12.5px;">Net income for the current period, broken down by interest, fee and penalty income against operating expenses.</p><button class="btn btn-outline btn-sm" style="margin-top:12px;">View Statement</button></div>
+            <div class="card"><h3 style="margin-bottom:10px;">Balance Sheet</h3><p class="muted" style="color:var(--text-muted);font-size:12.5px;">Assets, liabilities and equity position across all branches as of the selected date.</p><button class="btn btn-outline btn-sm" style="margin-top:12px;">View Statement</button></div>
+            <div class="card"><h3 style="margin-bottom:10px;">Cash Flow</h3><p class="muted" style="color:var(--text-muted);font-size:12.5px;">Operating, investing and financing cash movements for the selected accounting period.</p><button class="btn btn-outline btn-sm" style="margin-top:12px;">View Statement</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================= REPORTS ======================= -->
+      <section class="view" id="view-reports">
+        <div class="section-head"><div><h2>Reports</h2><p>Operational, portfolio, financial and audit reporting.</p></div></div>
+        <div class="tabbar" data-tabgroup="reports">
+          <button class="tab-btn active" data-tab="rep-customer">Customer</button>
+          <button class="tab-btn" data-tab="rep-loan">Loan</button>
+          <button class="tab-btn" data-tab="rep-repay">Repayment</button>
+          <button class="tab-btn" data-tab="rep-portfolio">Portfolio</button>
+          <button class="tab-btn" data-tab="rep-acct">Accounting</button>
+        </div>
+        <div class="tab-panel active" id="rep-customer"><div class="report-grid" data-cat="customer"></div></div>
+        <div class="tab-panel" id="rep-loan"><div class="report-grid" data-cat="loan"></div></div>
+        <div class="tab-panel" id="rep-repay"><div class="report-grid" data-cat="repay"></div></div>
+        <div class="tab-panel" id="rep-portfolio"><div class="report-grid" data-cat="portfolio"></div></div>
+        <div class="tab-panel" id="rep-acct"><div class="report-grid" data-cat="acct"></div></div>
+      </section>
+
+      <!-- ======================= AUDIT ======================= -->
+      <section class="view" id="view-audit">
+        <div class="section-head"><div><h2>Audit Trail</h2><p>Immutable log of every sensitive action across the system.</p></div>
+          <button class="btn btn-outline btn-sm"><i class="fa-solid fa-file-export"></i> Export Log</button>
+        </div>
+        <div class="card">
+          <div class="filters">
+            <select class="select"><option>All Actions</option><option>LOAN_APPROVED</option><option>REPAYMENT_CREATED</option><option>REPAYMENT_REVERSED</option><option>CUSTOMER_UPDATED</option><option>PERMISSION_CHANGED</option></select>
+            <select class="select"><option>All Users</option><option>Amina Kessy</option><option>J. Mrema</option><option>F. Shirima</option></select>
+            <input class="input" type="date">
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Object</th><th>Branch</th><th>IP Address</th></tr></thead>
+            <tbody id="auditTable"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ======================= ADMIN ======================= -->
+      <section class="view" id="view-admin">
+        <div class="section-head"><div><h2>Users &amp; Roles</h2><p>Staff accounts, role assignment and branch-scoped permissions.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> Add Staff</button>
+        </div>
+        <div class="card"><div class="table-wrap"><table>
+          <thead><tr><th>Employee #</th><th>Name</th><th>Role</th><th>Branch</th><th>MFA</th><th>Status</th></tr></thead>
+          <tbody id="usersTable"></tbody>
+        </table></div></div>
+      </section>
+
+      <!-- ======================= BRANCHES ======================= -->
+      <section class="view" id="view-branches">
+        <div class="section-head"><div><h2>Branches</h2><p>Organization structure and per-branch configuration.</p></div>
+          <button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Branch</button>
+        </div>
+        <div class="grid-3" id="branchesGrid"></div>
+      </section>
+
+      <!-- ======================= SETTINGS ======================= -->
+      <section class="view" id="view-settings">
+        <div class="section-head"><div><h2>System Settings</h2><p>Institution configuration, products and business rules.</p></div></div>
+        <div class="grid-3">
+          <div class="card">
+            <h3 style="margin-bottom:8px;">Institution</h3>
+            <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">Name, currency, financial year and regulatory details.</p>
+            <button class="btn btn-outline btn-sm">Configure</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:8px;">Loan &amp; Savings Products</h3>
+            <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">Interest methods, fees, penalty rules and approval limits.</p>
+            <button class="btn btn-outline btn-sm">Configure</button>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom:8px;">Appearance &amp; Theme Studio</h3>
+            <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">Customize header and sidebar colors, hover and transition animation.</p>
+            <button class="btn btn-primary btn-sm" onclick="openDrawer()">Open Theme Studio</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============================= THEME DRAWER ============================= -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3><i class="fa-solid fa-palette" style="color:var(--accent);margin-right:8px;"></i>Theme Studio</h3>
+    <button class="icon-btn" id="drawerClose"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="drawer-section">
+      <h4>Palette Presets</h4>
+      <div class="swatch-row" id="presetRow"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h4>Custom Colors</h4>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--sidebar-bg);"></span>Sidebar color</label>
+        <input type="color" id="pickSidebar" value="#173C34">
+      </div>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--header-bg);"></span>Header color</label>
+        <input type="color" id="pickHeader" value="#FFFFFF">
+      </div>
+      <div class="color-row">
+        <label><span class="color-dot-preview" style="background:var(--accent);"></span>Accent color</label>
+        <input type="color" id="pickAccent" value="#D9A441">
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <h4>Motion</h4>
+      <div class="opt-row">
+        <div><div class="opt-label">Hover &amp; transition animation</div><div class="opt-sub">Card lift, nav slide, button motion</div></div>
+        <button class="toggle on" id="animToggle"></button>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="opt-sub" style="margin-bottom:8px;">Transition speed</div>
+        <div class="speed-row">
+          <button class="speed-btn" data-speed="120">Fast</button>
+          <button class="speed-btn active" data-speed="220">Normal</button>
+          <button class="speed-btn" data-speed="380">Relaxed</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <h4>Layout</h4>
+      <div class="opt-row">
+        <div><div class="opt-label">Compact sidebar</div><div class="opt-sub">Collapse to icon-only navigation</div></div>
+        <button class="toggle" id="compactToggle"></button>
+      </div>
+    </div>
+
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-outline" style="flex:1;" id="resetTheme">Reset to default</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="closeDrawer()">Done</button>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   DATA — representative records generated from the SRS domain
+   ============================================================ */
+const branches = ["Dar es Salaam","Moshi","Arusha","Mwanza"];
+const officers = ["J. Mrema","F. Shirima","H. Bakari","N. Kileo"];
+const products = ["Business Loan","Salary Loan","Agricultural Loan","Group Loan","Emergency Loan","School Fees Loan"];
+
+const customers = [
+  ["CUS-DAR-000241","Fatuma Ngowi","Dar es Salaam","+255 754 221 908","Business Loan","1,240,000","Low","Active"],
+  ["CUS-MOS-000118","Elias Massawe","Moshi","+255 782 004 552","Agricultural Loan","3,880,000","Medium","Active"],
+  ["CUS-ARI-000076","Grace Mollel","Arusha","+255 715 998 231","Salary Loan","0","Low","Active"],
+  ["CUS-DAR-000330","Rehema Juma","Dar es Salaam","+255 767 442 190","Group Loan","640,000","High","Active"],
+  ["CUS-MWZ-000054","Baraka Lyimo","Mwanza","+255 683 219 004","Business Loan","5,120,000","Medium","Active"],
+  ["CUS-DAR-000212","Zainab Said","Dar es Salaam","+255 744 512 887","Emergency Loan","210,000","Low","Dormant"],
+  ["CUS-ARI-000141","Daniel Mushi","Arusha","+255 789 003 214","School Fees Loan","980,000","Low","Active"],
+  ["CUS-MOS-000063","Neema Kimaro","Moshi","+255 712 665 340","Business Loan","2,340,000","High","Active"],
+];
+const riskPill = r => r==="Low"?"pill-success":r==="Medium"?"pill-warning":"pill-danger";
+const statusPill = s => s==="Active"?"pill-success":s==="Dormant"?"pill-neutral":"pill-warning";
+
+document.getElementById('customersTable').innerHTML = customers.map(c=>`
+  <tr><td class="cell-strong">${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td class="cell-muted">${c[3]}</td>
+  <td>${c[4]}</td><td>${c[5]==="0"?"&mdash;":"TZS "+c[5]}</td><td><span class="pill ${riskPill(c[6])}">${c[6]}</span></td>
+  <td><span class="pill ${statusPill(c[7])}">${c[7]}</span></td></tr>`).join('');
+
+const groups = [
+  ["Umoja Women's Group","Dar es Salaam","12 members","Weekly · Tandale Market"],
+  ["Kilimanjaro Farmers Circle","Moshi","8 members","Bi-weekly · Kiboroloni"],
+  ["Serengeti Traders","Arusha","15 members","Weekly · Kilombero Rd"],
+];
+document.getElementById('groupsGrid').innerHTML = groups.map(g=>`
+  <div class="card"><div class="card-head"><h3>${g[0]}</h3><span class="pill pill-success">Active</span></div>
+  <div style="font-size:12.8px;color:var(--text-muted);display:flex;flex-direction:column;gap:4px;">
+    <span><i class="fa-solid fa-location-dot" style="width:16px;color:var(--accent);"></i>${g[1]}</span>
+    <span><i class="fa-solid fa-users" style="width:16px;color:var(--accent);"></i>${g[2]}</span>
+    <span><i class="fa-solid fa-calendar" style="width:16px;color:var(--accent);"></i>${g[3]}</span>
+  </div></div>`).join('');
+
+const kyc = [
+  ["Fatuma Ngowi","National ID","2 Aug 2026","H. Bakari","Verified"],
+  ["Elias Massawe","Business License","5 Aug 2026","J. Mrema","Verified"],
+  ["Rehema Juma","Guarantor Consent","7 Aug 2026","&mdash;","Pending"],
+  ["Daniel Mushi","Salary Slip","8 Aug 2026","F. Shirima","Verified"],
+  ["Neema Kimaro","Collateral Document","8 Aug 2026","&mdash;","Under Review"],
+];
+document.getElementById('kycTable').innerHTML = kyc.map(k=>`
+  <tr><td class="cell-strong">${k[0]}</td><td>${k[1]}</td><td class="cell-muted">${k[2]}</td><td>${k[3]}</td>
+  <td><span class="pill ${k[4]==='Verified'?'pill-success':k[4]==='Pending'?'pill-warning':'pill-info'}">${k[4]}</span></td></tr>`).join('');
+
+/* Savings */
+const savingsProducts = [
+  ["Ordinary Savings","2.5% p.a.","No minimum balance"],
+  ["Fixed Savings","6.0% p.a.","12-month lock-in"],
+  ["Compulsory Savings","1.0% p.a.","Tied to active loan"],
+];
+document.getElementById('savingsProductGrid').innerHTML = savingsProducts.map(p=>`
+  <div class="card"><h3 style="margin-bottom:8px;">${p[0]}</h3>
+  <div style="font-size:22px;font-weight:800;color:var(--accent);margin-bottom:6px;">${p[1]}</div>
+  <div style="font-size:12.5px;color:var(--text-muted);">${p[2]}</div></div>`).join('');
+
+const savingsAcc = [
+  ["SAV-DAR-00812","Fatuma Ngowi","Ordinary Savings","Dar es Salaam","420,000","Active"],
+  ["SAV-MOS-00445","Elias Massawe","Compulsory Savings","Moshi","118,000","Active"],
+  ["SAV-ARI-00299","Grace Mollel","Fixed Savings","Arusha","2,000,000","Active"],
+];
+document.getElementById('savingsAccTable').innerHTML = savingsAcc.map(s=>`
+  <tr><td class="cell-strong">${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[3]}</td><td>TZS ${s[4]}</td>
+  <td><span class="pill pill-success">${s[5]}</span></td></tr>`).join('');
+
+const savingsTxn = [
+  ["TXN-00981","SAV-DAR-00812","Deposit","150,000","09 Aug 2026","Dar es Salaam"],
+  ["TXN-00982","SAV-MOS-00445","Interest Posting","1,180","09 Aug 2026","Moshi"],
+  ["TXN-00983","SAV-ARI-00299","Withdrawal","300,000","08 Aug 2026","Arusha"],
+];
+document.getElementById('savingsTxnTable').innerHTML = savingsTxn.map(t=>`
+  <tr><td class="cell-strong">${t[0]}</td><td>${t[1]}</td><td>${t[2]}</td><td>TZS ${t[3]}</td><td class="cell-muted">${t[4]}</td><td>${t[5]}</td></tr>`).join('');
+
+/* Loan applications */
+const loanApps = [
+  ["APP-DAR-000512","Rehema Juma","Group Loan","640,000","J. Mrema","Dar es Salaam","Under Review"],
+  ["APP-MOS-000287","Neema Kimaro","Business Loan","2,340,000","N. Kileo","Moshi","Credit Assessment"],
+  ["APP-ARI-000199","Daniel Mushi","School Fees Loan","980,000","H. Bakari","Arusha","Recommended"],
+  ["APP-MWZ-000144","Baraka Lyimo","Business Loan","5,120,000","F. Shirima","Mwanza","Submitted"],
+  ["APP-DAR-000513","Zainab Said","Emergency Loan","300,000","J. Mrema","Dar es Salaam","Draft"],
+];
+const appPill = s => ({"Draft":"pill-neutral","Submitted":"pill-info","Under Review":"pill-warning","Credit Assessment":"pill-warning","Recommended":"pill-success"})[s]||"pill-neutral";
+document.getElementById('loanAppTable').innerHTML = loanApps.map(a=>`
+  <tr><td class="cell-strong">${a[0]}</td><td>${a[1]}</td><td>${a[2]}</td><td>TZS ${a[3]}</td><td>${a[4]}</td><td>${a[5]}</td>
+  <td><span class="pill ${appPill(a[6])}">${a[6]}</span></td><td><i class="fa-solid fa-chevron-right" style="color:var(--text-muted);"></i></td></tr>`).join('');
+
+/* Credit weighting bars */
+const weights = [["Income",20],["Repayment History",25],["Debt Ratio",20],["Business Stability",15],["Collateral",10],["Customer History",10]];
+document.getElementById('creditWeights').innerHTML = weights.map(w=>`
+  <div style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;font-size:12.8px;font-weight:700;margin-bottom:6px;"><span>${w[0]}</span><span>${w[1]}%</span></div>
+    <div class="progress"><div style="width:${w[1]*4}%;"></div></div>
+  </div>`).join('');
+
+/* Approvals */
+const approvals = [
+  ["APP-ARI-000199","Daniel Mushi","980,000","Branch Manager","H. Bakari","Pending Approval"],
+  ["APP-MWZ-000098","Consolata Mrisho","18,400,000","Head of Operations","F. Shirima","Pending Approval"],
+  ["APP-DAR-000501","Twiga Traders Group","32,000,000","General Manager","J. Mrema","Pending Approval"],
+];
+document.getElementById('approvalTable').innerHTML = approvals.map(a=>`
+  <tr><td class="cell-strong">${a[0]}</td><td>${a[1]}</td><td>TZS ${a[2]}</td><td><span class="pill pill-info">${a[3]}</span></td><td>${a[4]}</td>
+  <td><span class="pill pill-warning">${a[5]}</span></td></tr>`).join('');
+
+/* Active loans */
+const activeLoans = [
+  ["LOAN-DAR-000391","Fatuma Ngowi","Business Loan","2,000,000","1,240,000","14 Aug 2026","Current"],
+  ["LOAN-MOS-000276","Elias Massawe","Agricultural Loan","4,500,000","3,880,000","10 Aug 2026","PAR 1-29"],
+  ["LOAN-MWZ-000210","Baraka Lyimo","Business Loan","6,000,000","5,120,000","02 Aug 2026","PAR 30-89"],
+  ["LOAN-MOS-000198","Neema Kimaro","Business Loan","3,000,000","2,340,000","28 Jul 2026","PAR 90+"],
+];
+const parPill = p => p==="Current"?"pill-success":p==="PAR 1-29"?"pill-info":p==="PAR 30-89"?"pill-warning":"pill-danger";
+document.getElementById('activeLoansTable').innerHTML = activeLoans.map(l=>`
+  <tr><td class="cell-strong">${l[0]}</td><td>${l[1]}</td><td>${l[2]}</td><td>TZS ${l[3]}</td><td>TZS ${l[4]}</td><td class="cell-muted">${l[5]}</td>
+  <td><span class="pill ${parPill(l[6])}">${l[6]}</span></td></tr>`).join('');
+
+/* Repayments */
+const repayments = [
+  ["RCT-DAR-004421","Fatuma Ngowi","LOAN-DAR-000391","260,000","Interest &rarr; Principal","Grace Mmasi","09 Aug 2026"],
+  ["RCT-MOS-004422","Elias Massawe","LOAN-MOS-000276","500,000","Penalty &rarr; Interest &rarr; Principal","Isaya Ndosi","09 Aug 2026"],
+  ["RCT-MWZ-004423","Baraka Lyimo","LOAN-MWZ-000210","300,000","Interest &rarr; Principal","Grace Mmasi","08 Aug 2026"],
+];
+document.getElementById('repaymentTable').innerHTML = repayments.map(r=>`
+  <tr><td class="cell-strong">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>TZS ${r[3]}</td><td class="cell-muted">${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+
+/* Collections */
+const collections = [
+  ["Neema Kimaro","LOAN-MOS-000198","94 days overdue","N. Kileo","Escalated"],
+  ["Baraka Lyimo","LOAN-MWZ-000210","41 days overdue","F. Shirima","Visited"],
+  ["Rehema Juma Group","GRP-DAR-0021","6 days overdue","J. Mrema","Promise to Pay"],
+];
+document.getElementById('collectionsGrid').innerHTML = collections.map(c=>`
+  <div class="card"><div class="card-head"><h3>${c[0]}</h3><span class="pill ${c[4]==='Escalated'?'pill-danger':c[4]==='Visited'?'pill-warning':'pill-info'}">${c[4]}</span></div>
+  <div style="font-size:12.8px;color:var(--text-muted);display:flex;flex-direction:column;gap:4px;">
+  <span><i class="fa-solid fa-file-invoice-dollar" style="width:16px;color:var(--accent);"></i>${c[1]}</span>
+  <span><i class="fa-solid fa-clock" style="width:16px;color:var(--accent);"></i>${c[2]}</span>
+  <span><i class="fa-solid fa-user" style="width:16px;color:var(--accent);"></i>Assigned: ${c[3]}</span></div></div>`).join('');
+
+/* Teller sessions */
+const tellers = [
+  ["Grace Mmasi","Dar es Salaam","2,000,000","6,420,000","6,415,000","-5,000","Reconciling"],
+  ["Isaya Ndosi","Moshi","1,500,000","4,180,000","4,180,000","0","Closed"],
+  ["Peter Mahonge","Arusha","1,000,000","2,940,000","2,955,000","+15,000","Reconciling"],
+];
+document.getElementById('tellerTable').innerHTML = tellers.map(t=>`
+  <tr><td class="cell-strong">${t[0]}</td><td>${t[1]}</td><td>TZS ${t[2]}</td><td>TZS ${t[3]}</td><td>TZS ${t[4]}</td>
+  <td style="color:${t[5].includes('-')&&t[5]!=='0'?'var(--danger)':t[5]==='0'?'var(--text-muted)':'var(--success)'};font-weight:800;">${t[5]==='0'?'—':'TZS '+t[5]}</td>
+  <td><span class="pill ${t[6]==='Closed'?'pill-neutral':'pill-warning'}">${t[6]}</span></td></tr>`).join('');
+
+const cashTxn = [
+  ["TXN-CASH-8871","Repayment","260,000","Dar es Salaam","Grace Mmasi","09:14"],
+  ["TXN-CASH-8872","Disbursement","2,000,000","Moshi","Isaya Ndosi","09:41"],
+  ["TXN-CASH-8873","Deposit","150,000","Arusha","Peter Mahonge","10:02"],
+];
+document.getElementById('cashTxnTable').innerHTML = cashTxn.map(c=>`
+  <tr><td class="cell-strong">${c[0]}</td><td>${c[1]}</td><td>TZS ${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td><td class="cell-muted">${c[5]}</td></tr>`).join('');
+
+const banks = [["CRDB Bank","Operating Account","1,240,000,000"],["NMB Bank","Disbursement Account","880,500,000"],["NBC","Reserve Account","410,200,000"]];
+document.getElementById('bankGrid').innerHTML = banks.map(b=>`
+  <div class="card"><div class="card-head"><h3>${b[0]}</h3><i class="fa-solid fa-building-columns" style="color:var(--accent);"></i></div>
+  <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:6px;">${b[1]}</div>
+  <div style="font-size:20px;font-weight:800;">TZS ${b[2]}</div></div>`).join('');
+
+/* Accounting */
+const coa = [
+  ["1100","Cash","Asset","214,600,000"],["1200","Bank","Asset","2,530,700,000"],["1300","Loan Portfolio","Asset","8,420,000,000"],
+  ["2100","Customer Deposits","Liability","1,180,400,000"],["4100","Interest Income","Income","62,300,000"],
+  ["4200","Fee Income","Income","8,140,000"],["5100","Salaries","Expense","41,200,000"],["5200","Rent","Expense","6,800,000"],
+];
+document.getElementById('coaTable').innerHTML = coa.map(c=>`
+  <tr><td class="cell-muted">${c[0]}</td><td class="cell-strong">${c[1]}</td><td><span class="pill pill-info">${c[2]}</span></td><td>TZS ${c[3]}</td></tr>`).join('');
+
+const journal = [
+  ["JRN-000812","09 Aug 2026","Cash / Interest Income","260,000","260,000","Posted"],
+  ["JRN-000813","09 Aug 2026","Loan Portfolio / Cash","2,000,000","2,000,000","Posted"],
+  ["JRN-000814","09 Aug 2026","Expense / Bank","6,800,000","6,800,000","Pending Approval"],
+];
+document.getElementById('journalTable').innerHTML = journal.map(j=>`
+  <tr><td class="cell-strong">${j[0]}</td><td class="cell-muted">${j[1]}</td><td>${j[2]}</td><td>TZS ${j[3]}</td><td>TZS ${j[4]}</td>
+  <td><span class="pill ${j[5]==='Posted'?'pill-success':'pill-warning'}">${j[5]}</span></td></tr>`).join('');
+
+document.getElementById('trialBalance').innerHTML = `
+  <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-weight:800;">
+    <span>Total Debits</span><span>TZS 11,197,240,000</span></div>
+  <div style="display:flex;justify-content:space-between;padding:12px 0;font-weight:800;">
+    <span>Total Credits</span><span>TZS 11,197,240,000</span></div>
+  <div style="margin-top:10px;"><span class="pill pill-success">Balanced &mdash; Debits equal Credits</span></div>`;
+
+/* Reports */
+const reportCats = {
+  customer:[["Customer Register","fa-address-book"],["New Customers","fa-user-plus"],["Customer Activity","fa-chart-line"],["KYC Status","fa-id-card"]],
+  loan:[["Loan Register","fa-book"],["Applications Report","fa-file-lines"],["Disbursed Loans","fa-hand-holding-dollar"],["Written-off Loans","fa-file-circle-xmark"]],
+  repay:[["Daily Collections","fa-calendar-day"],["Overdue Repayments","fa-triangle-exclamation"],["Collection Efficiency","fa-percent"]],
+  portfolio:[["Portfolio Outstanding","fa-chart-pie"],["PAR Aging Analysis","fa-layer-group"],["Product Performance","fa-boxes-stacked"],["Branch Performance","fa-code-branch"]],
+  acct:[["Trial Balance","fa-scale-balanced"],["Income Statement","fa-sack-dollar"],["Balance Sheet","fa-building-columns"],["Expense Report","fa-receipt"]],
+};
+document.querySelectorAll('.report-grid').forEach(grid=>{
+  const cat = grid.dataset.cat;
+  grid.innerHTML = reportCats[cat].map(r=>`
+    <div class="report-card"><i class="fa-solid ${r[1]}"></i><h4>${r[0]}</h4><p>Export as PDF, Excel or CSV</p></div>`).join('');
+});
+
+/* Audit */
+const audit = [
+  ["09 Aug 2026 09:14:02","Grace Mmasi","REPAYMENT_CREATED","RCT-DAR-004421","Dar es Salaam","41.222.10.5"],
+  ["09 Aug 2026 08:58:41","Amina Kessy","LOAN_APPROVED","APP-DAR-000498","Dar es Salaam","41.222.10.1"],
+  ["08 Aug 2026 17:20:11","J. Mrema","CUSTOMER_UPDATED","CUS-DAR-000330","Dar es Salaam","41.222.10.9"],
+  ["08 Aug 2026 16:02:37","System Administrator","PERMISSION_CHANGED","Role: Credit Officer","Head Office","10.0.0.4"],
+  ["08 Aug 2026 11:45:02","F. Shirima","REPAYMENT_REVERSED","RCT-MWZ-004390","Mwanza","41.222.14.2"],
+];
+document.getElementById('auditTable').innerHTML = audit.map(a=>`
+  <tr><td class="cell-muted">${a[0]}</td><td class="cell-strong">${a[1]}</td><td><span class="pill pill-info">${a[2]}</span></td><td>${a[3]}</td><td>${a[4]}</td><td class="cell-muted">${a[5]}</td></tr>`).join('');
+
+/* Users */
+const users = [
+  ["EMP-0021","Amina Kessy","Branch Manager","Dar es Salaam","Enabled","Active"],
+  ["EMP-0034","J. Mrema","Loan Officer","Dar es Salaam","Disabled","Active"],
+  ["EMP-0045","F. Shirima","Credit Officer","Mwanza","Enabled","Active"],
+  ["EMP-0012","System Administrator","Administrator","Head Office","Enabled","Active"],
+  ["EMP-0058","H. Bakari","Loan Officer","Arusha","Disabled","Active"],
+];
+document.getElementById('usersTable').innerHTML = users.map(u=>`
+  <tr><td class="cell-muted">${u[0]}</td><td class="cell-strong">${u[1]}</td><td>${u[2]}</td><td>${u[3]}</td>
+  <td><span class="pill ${u[4]==='Enabled'?'pill-success':'pill-neutral'}">${u[4]}</span></td><td><span class="pill pill-success">${u[5]}</span></td></tr>`).join('');
+
+/* Branches */
+const branchData = [
+  ["Dar es Salaam","Head Office Region","412 customers","Amina Kessy"],
+  ["Moshi","Northern Region","298 customers","Isaya Ndosi"],
+  ["Arusha","Northern Region","356 customers","Peter Mahonge"],
+  ["Mwanza","Lake Zone","218 customers","F. Shirima"],
+];
+document.getElementById('branchesGrid').innerHTML = branchData.map(b=>`
+  <div class="card"><div class="card-head"><h3>${b[0]}</h3><span class="pill pill-success">Active</span></div>
+  <div style="font-size:12.8px;color:var(--text-muted);display:flex;flex-direction:column;gap:4px;">
+  <span><i class="fa-solid fa-map" style="width:16px;color:var(--accent);"></i>${b[1]}</span>
+  <span><i class="fa-solid fa-users" style="width:16px;color:var(--accent);"></i>${b[2]}</span>
+  <span><i class="fa-solid fa-user-tie" style="width:16px;color:var(--accent);"></i>Manager: ${b[3]}</span></div></div>`).join('');
+
+/* Dashboard: branch performance + bars + feed */
+document.getElementById('branchTable').innerHTML = [
+  ["Dar es Salaam","412","TZS 1.9 Bn","94.2%","5.1%"],
+  ["Moshi","298","TZS 1.2 Bn","91.6%","7.8%"],
+  ["Arusha","356","TZS 1.6 Bn","96.0%","4.4%"],
+  ["Mwanza","218","TZS 0.8 Bn","88.9%","9.6%"],
+].map(r=>`<tr><td class="cell-strong">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td>
+  <td><span class="pill ${parseFloat(r[4])>8?'pill-danger':parseFloat(r[4])>6?'pill-warning':'pill-success'}">${r[4]}</span></td></tr>`).join('');
+
+const months=["Mar","Apr","May","Jun","Jul","Aug"];
+const disb=[62,71,58,80,74,88], coll=[54,66,60,73,70,81];
+document.getElementById('barsChart').innerHTML = months.map((m,i)=>`
+  <div class="bar-col">
+    <div class="bar-wrap">
+      <div class="bar bar-disb" style="height:${disb[i]}%;"></div>
+      <div class="bar bar-coll" style="height:${coll[i]}%;"></div>
+    </div>
+    <div class="bar-month">${m}</div>
+  </div>`).join('');
+
+const feed = [
+  ["fa-hand-holding-dollar","var(--success)","var(--success-bg)","Loan APP-DAR-000498 approved for Consolata Mrisho","2 min ago"],
+  ["fa-coins","var(--info)","var(--info-bg)","Repayment of TZS 260,000 received from Fatuma Ngowi","14 min ago"],
+  ["fa-user-plus","var(--accent)","var(--accent-dim)","New customer Neema Kimaro registered in Moshi","41 min ago"],
+  ["fa-triangle-exclamation","var(--warning)","var(--warning-bg)","Cash variance of TZS 15,000 flagged &mdash; Arusha","1 hr ago"],
+  ["fa-file-circle-check","var(--danger)","var(--danger-bg)","Loan LOAN-MOS-000198 escalated to collections","2 hr ago"],
+];
+document.getElementById('activityFeed').innerHTML = feed.map(f=>`
+  <li><div class="feed-icon" style="background:${f[2]};color:${f[1]};"><i class="fa-solid ${f[0]}"></i></div>
+  <div><div class="feed-text">${f[3]}</div><div class="feed-time">${f[4]}</div></div></li>`).join('');
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const navItems = document.querySelectorAll('.nav-item[data-view]');
+const views = document.querySelectorAll('.view');
+const crumbPath = document.getElementById('crumbPath');
+const crumbTitle = document.getElementById('crumbTitle');
+const titleMap = {
+  dashboard:["Overview","Dashboard"], customers:["Customers","Customers & Groups"], savings:["Customers","Savings"],
+  loans:["Lending","Loans"], collections:["Lending","Collections"], cash:["Operations","Cash & Tellers"],
+  accounting:["Operations","Accounting"], reports:["Insight","Reports"], audit:["Insight","Audit Trail"],
+  admin:["Administration","Users & Roles"], branches:["Administration","Branches"], settings:["Administration","System Settings"],
+};
+navItems.forEach(item=>{
+  item.addEventListener('click', ()=>{
+    navItems.forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    const v = item.dataset.view;
+    views.forEach(sec=>sec.classList.toggle('active', sec.id === 'view-'+v));
+    crumbPath.textContent = titleMap[v][0];
+    crumbTitle.textContent = titleMap[v][1];
+    document.getElementById('app').classList.remove('mobile-open');
+  });
+});
+
+/* Tabs within views */
+document.querySelectorAll('.tabbar').forEach(bar=>{
+  const btns = bar.querySelectorAll('.tab-btn');
+  btns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      btns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const panelId = btn.dataset.tab;
+      const container = bar.parentElement;
+      container.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id===panelId));
+    });
+  });
+});
+
+/* ============================================================
+   SIDEBAR COLLAPSE / MOBILE
+   ============================================================ */
+const app = document.getElementById('app');
+document.getElementById('collapseBtn').addEventListener('click', ()=> app.classList.toggle('collapsed'));
+document.getElementById('menuBtn').addEventListener('click', ()=>{
+  if(window.innerWidth <= 1024){
+    app.classList.toggle('mobile-open');
+    document.getElementById('sidebarOverlay').classList.toggle('open', app.classList.contains('mobile-open'));
+  } else {
+    app.classList.toggle('collapsed');
+  }
+});
+document.getElementById('sidebarOverlay').addEventListener('click', ()=>{
+  app.classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+});
+
+/* ============================================================
+   THEME STUDIO
+   ============================================================ */
+const root = document.documentElement.style;
+const drawer = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawerOverlay');
+function openDrawer(){ drawer.classList.add('open'); drawerOverlay.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); drawerOverlay.classList.remove('open'); }
+document.getElementById('themeBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+
+const presets = [
+  {name:"Ledger Green", sidebar:"#173C34", header:"#FFFFFF", accent:"#D9A441"},
+  {name:"Sisal Navy", sidebar:"#122A45", header:"#FFFFFF", accent:"#4C8DFF"},
+  {name:"Harvest Clay", sidebar:"#3A2317", header:"#FFF9F2", accent:"#D97F4B"},
+  {name:"Baobab Charcoal", sidebar:"#20262B", header:"#FFFFFF", accent:"#4CAF88"},
+  {name:"Coastal Teal", sidebar:"#0E3E42", header:"#F4FBFA", accent:"#2FBFA0"},
+  {name:"Savanna Plum", sidebar:"#3B1F3A", header:"#FFFFFF", accent:"#E0A0D8"},
+];
+const presetRow = document.getElementById('presetRow');
+presetRow.innerHTML = presets.map((p,i)=>`
+  <div class="preset-item">
+    <div class="swatch ${i===0?'active':''}" data-idx="${i}" style="background:linear-gradient(135deg, ${p.sidebar} 50%, ${p.accent} 50%);"></div>
+    <div class="preset-name">${p.name}</div>
+  </div>`).join('');
+
+function applyTheme(sidebar, header, accent){
+  root.setProperty('--sidebar-bg', sidebar);
+  root.setProperty('--sidebar-bg-2', shade(sidebar,-14));
+  root.setProperty('--header-bg', header);
+  root.setProperty('--header-text', textOn(header));
+  root.setProperty('--accent', accent);
+  root.setProperty('--accent-dim', shade(accent, 62));
+  document.getElementById('pickSidebar').value = toHex(sidebar);
+  document.getElementById('pickHeader').value = toHex(header);
+  document.getElementById('pickAccent').value = toHex(accent);
+}
+function toHex(c){
+  if(c.startsWith('#')) return c.length===7? c : '#000000';
+  return '#000000';
+}
+function shade(hex, percent){
+  hex = hex.replace('#','');
+  if(hex.length!==6) return hex;
+  let num = parseInt(hex,16), r=(num>>16)+Math.round(2.55*percent), g=((num>>8)&0xff)+Math.round(2.55*percent), b=(num&0xff)+Math.round(2.55*percent);
+  r=Math.min(255,Math.max(0,r)); g=Math.min(255,Math.max(0,g)); b=Math.min(255,Math.max(0,b));
+  return '#'+(1<<24 | r<<16 | g<<8 | b).toString(16).slice(1);
+}
+function textOn(hex){
+  hex = hex.replace('#','');
+  if(hex.length!==6) return '#17241F';
+  const num=parseInt(hex,16), r=(num>>16)&0xff, g=(num>>8)&0xff, b=num&0xff;
+  const lum = (0.299*r+0.587*g+0.114*b)/255;
+  return lum > 0.6 ? '#17241F' : '#F5F6F3';
+}
+
+presetRow.addEventListener('click', e=>{
+  const sw = e.target.closest('.swatch');
+  if(!sw) return;
+  presetRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  sw.classList.add('active');
+  const p = presets[sw.dataset.idx];
+  applyTheme(p.sidebar, p.header, p.accent);
+});
+
+document.getElementById('pickSidebar').addEventListener('input', e=>{
+  root.setProperty('--sidebar-bg', e.target.value);
+  root.setProperty('--sidebar-bg-2', shade(e.target.value,-14));
+  presetRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+});
+document.getElementById('pickHeader').addEventListener('input', e=>{
+  root.setProperty('--header-bg', e.target.value);
+  root.setProperty('--header-text', textOn(e.target.value));
+  presetRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+});
+document.getElementById('pickAccent').addEventListener('input', e=>{
+  root.setProperty('--accent', e.target.value);
+  root.setProperty('--accent-dim', shade(e.target.value,62));
+  presetRow.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+});
+
+/* animation toggle */
+const animToggle = document.getElementById('animToggle');
+animToggle.addEventListener('click', ()=>{
+  animToggle.classList.toggle('on');
+  const on = animToggle.classList.contains('on');
+  document.documentElement.setAttribute('data-anim', on ? 'on' : 'off');
+});
+
+/* speed buttons */
+document.querySelectorAll('.speed-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    root.setProperty('--dur', btn.dataset.speed+'ms');
+  });
+});
+
+/* compact toggle (mirrors collapse button) */
+document.getElementById('compactToggle').addEventListener('click', ()=>{
+  document.getElementById('compactToggle').classList.toggle('on');
+  app.classList.toggle('collapsed');
+});
+
+/* reset */
+document.getElementById('resetTheme').addEventListener('click', ()=>{
+  applyTheme(presets[0].sidebar, presets[0].header, presets[0].accent);
+  presetRow.querySelectorAll('.swatch').forEach((s,i)=>s.classList.toggle('active', i===0));
+  root.setProperty('--dur','220ms');
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active', b.dataset.speed==='220'));
+  animToggle.classList.add('on');
+  document.documentElement.setAttribute('data-anim','on');
+  app.classList.remove('collapsed');
+  document.getElementById('compactToggle').classList.remove('on');
+});
+
+/* global search — simple client-side filter on customers table when on that view */
+document.getElementById('globalSearch').addEventListener('input', e=>{
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#customersTable tr').forEach(row=>{
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

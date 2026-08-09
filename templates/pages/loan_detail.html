@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}{{ app.application_number }} · MaendeLeo{% endblock %}
+{% block crumb_path %}Loans{% endblock %}
+{% block crumb_title %}{{ app.application_number }}{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <div class="toolbar-right">
+      <a class="btn btn-outline" href="{% url 'loans_page' %}"><i class="fa-solid fa-arrow-left"></i> Back to Loans</a>
+      {% if app.status == 'DRAFT' and is_maker %}
+      <form method="post" action="{% url 'loan_application_submit' app.pk %}">{% csrf_token %}<button class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Submit for Review</button></form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="app-hero card">
+  <div class="app-hero-main">
+    <div class="app-number">{{ app.application_number }}</div>
+    <div class="app-customer">
+      <span class="avatar">{{ app.customer.initials }}</span>
+      <div>
+        <div class="cell-title">{{ app.customer.full_name }}</div>
+        <div class="cell-sub">{{ app.customer.customer_number }} · {{ app.customer.branch.name }}</div>
+      </div>
+    </div>
+    <div class="app-amount">
+      <div class="stat-label">Requested</div>
+      <div class="app-value">{{ app.requested_amount|money }}</div>
+      <div class="cell-sub">{{ app.requested_term_months }} months · {{ app.product.name }}</div>
+    </div>
+  </div>
+  <div class="app-hero-side">
+    <div class="stat-label">Status</div>
+    {% if app.status == 'APPROVED' or app.status == 'READY_FOR_DISBURSEMENT' %}<span class="badge badge-warning lg">{{ app.get_status_display }}</span>
+    {% elif app.status == 'REJECTED' or app.status == 'CANCELLED' %}<span class="badge badge-danger lg">{{ app.get_status_display }}</span>
+    {% elif app.status == 'DISBURSED' %}<span class="badge badge-success lg">{{ app.get_status_display }}</span>
+    {% else %}<span class="badge badge-info lg">{{ app.get_status_display }}</span>{% endif %}
+    <div class="cell-sub" style="margin-top:8px;">Required authority: <strong>{{ required_authority }}</strong></div>
+    {% if is_maker %}<div class="cell-sub" style="color:var(--warning);">You are the maker — you cannot approve this.</div>{% endif %}
+  </div>
+</div>
+
+<!-- Workflow stepper -->
+<div class="card">
+  <div class="card-head"><div><h3 class="card-title">Workflow Progress</h3><p class="card-sub">Maker → checker approval pipeline</p></div></div>
+  <div class="steps">
+    <div class="step {% if app.status != 'DRAFT' %}done{% elif app.status == 'DRAFT' %}active{% endif %}"><div class="step-dot"><i class="fa-solid fa-pen"></i></div><div class="step-label">Draft</div></div>
+    <div class="step-line {% if app.status != 'DRAFT' and app.status != 'SUBMITTED' and app.status != 'UNDER_REVIEW' and app.status != 'CREDIT_ASSESSMENT' %}done{% endif %}"></div>
+    <div class="step {% if app.status != 'DRAFT' %}done{% elif app.status == 'SUBMITTED' %}active{% endif %}"><div class="step-dot"><i class="fa-solid fa-paper-plane"></i></div><div class="step-label">Submitted</div></div>
+    <div class="step-line {% if app.status != 'DRAFT' and app.status != 'SUBMITTED' and app.status != 'UNDER_REVIEW' %}done{% endif %}"></div>
+    <div class="step {% if app.status == 'CREDIT_ASSESSMENT' or app.status == 'RECOMMENDED' %}active{% elif app.status != 'DRAFT' and app.status != 'SUBMITTED' and app.status != 'UNDER_REVIEW' %}done{% endif %}"><div class="step-dot"><i class="fa-solid fa-clipboard-check"></i></div><div class="step-label">Assessment</div></div>
+    <div class="step-line {% if app.status == 'APPROVED' or app.status == 'READY_FOR_DISBURSEMENT' or app.status == 'DISBURSED' or app.status == 'REJECTED' %}done{% endif %}"></div>
+    <div class="step {% if app.status == 'APPROVED' or app.status == 'READY_FOR_DISBURSEMENT' %}active{% elif app.status == 'DISBURSED' %}done{% endif %}"><div class="step-dot"><i class="fa-solid fa-stamp"></i></div><div class="step-label">Approval</div></div>
+    <div class="step-line {% if app.status == 'DISBURSED' %}done{% endif %}"></div>
+    <div class="step {% if app.status == 'DISBURSED' %}done{% endif %}"><div class="step-dot"><i class="fa-solid fa-money-bill-wave"></i></div><div class="step-label">Disbursement</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head"><div><h3 class="card-title">Application Details</h3></div></div>
+    <div class="detail-rows">
+      <div class="detail-row"><span>Customer</span><span>{{ app.customer.full_name }}</span></div>
+      <div class="detail-row"><span>Product</span><span>{{ app.product.name }} ({{ app.product.get_interest_method_display }})</span></div>
+      <div class="detail-row"><span>Interest rate</span><span>{{ app.product.interest_rate }}% per period</span></div>
+      <div class="detail-row"><span>Branch</span><span>{{ app.branch.name }}</span></div>
+      <div class="detail-row"><span>Loan officer</span><span>{{ app.loan_officer.get_full_name }}</span></div>
+      <div class="detail-row"><span>Submitted</span><span>{{ app.submitted_date|date:"d M Y H:i"|default:"—" }}</span></div>
+      <div class="detail-row"><span>Purpose</span><span>{{ app.purpose|default:"—" }}</span></div>
+      {% if app.approved_amount %}<div class="detail-row"><span>Approved amount</span><span class="stat-amount">{{ app.approved_amount|money }}</span></div>{% endif %}
+      {% if app.rejection_reason %}<div class="detail-row"><span>Rejection reason</span><span style="color:var(--danger);">{{ app.rejection_reason }}</span></div>{% endif %}
+    </div>
+
+    {% if app.approvals %}
+    <div class="card-head" style="margin-top:18px;"><div><h3 class="card-title">Approval History</h3></div></div>
+    {% for ap in app.approvals.all %}
+    <div class="activity-item">
+      <div class="activity-icon" style="background:var(--success-bg);color:var(--success);"><i class="fa-solid fa-stamp"></i></div>
+      <div class="activity-body">
+        <div class="activity-text">{{ ap.get_decision_display }} · {{ ap.amount_approved|money }}</div>
+        <div class="activity-meta">{{ ap.approver.get_full_name }} · {{ ap.authority_level }} · {{ ap.decided_at|date:"d M Y H:i" }}</div>
+        {% if ap.comments %}<div class="cell-sub">{{ ap.comments }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3 class="card-title">Credit Assessment</h3>
+        {% if assessment %}
+        <div class="cell-sub">Score: <strong>{{ assessment.credit_score }}</strong> · {{ assessment.get_recommendation_display }} · {{ assessment.get_risk_rating_display }} risk</div>
+        {% else %}<p class="card-sub">No assessment recorded yet.</p>{% endif %}
+      </div>
+      {% if can_assess and app.status != 'DISBURSED' and app.status != 'APPROVED' and app.status != 'REJECTED' and app.status != 'READY_FOR_DISBURSEMENT' %}
+      <button class="btn btn-primary" onclick="openModal('assessModal')"><i class="fa-solid fa-clipboard-user"></i> {% if assessment %}Update{% else %}Assess{% endif %}</button>
+      {% endif %}
+    </div>
+
+    {% if assessment %}
+    <div class="detail-rows">
+      <div class="detail-row"><span>Verified income</span><span>{{ assessment.verified_income|money }}</span></div>
+      <div class="detail-row"><span>Verified expenses</span><span>{{ assessment.verified_expenses|money }}</span></div>
+      <div class="detail-row"><span>Existing obligations</span><span>{{ assessment.existing_obligations|money }}</span></div>
+      <div class="detail-row"><span>Disposable income</span><span>{{ assessment.disposable_income|money }}</span></div>
+      <div class="detail-row"><span>Recommended amount</span><span>{{ assessment.recommended_amount|money|default:"—" }}</span></div>
+      <div class="detail-row"><span>Recommended term</span><span>{{ assessment.recommended_term_months|default:"—" }} months</span></div>
+    </div>
+    {% else %}
+    <div class="empty-state"><i class="fa-solid fa-clipboard"></i> A credit officer must assess this application.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% if app.loan %}
+<div class="card">
+  <div class="card-head">
+    <div><h3 class="card-title">Disbursed Loan · <span class="code">{{ app.loan.loan_number }}</span></h3>
+      <p class="card-sub">Disbursed {{ app.loan.disbursement_date|date:"d M Y" }} via {{ app.loan.get_disbursement_method_display }}</p></div>
+    <div class="stat-amount">{{ app.loan.outstanding_principal|money }}</div>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>#</th><th>Due date</th><th>Principal</th><th>Interest</th><th>Total due</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for i in app.loan.installments.all %}
+        <tr>
+          <td>{{ i.installment_number }}</td>
+          <td>{{ i.due_date|date:"d M Y" }}</td>
+          <td>{{ i.principal_due|amount }}</td>
+          <td>{{ i.interest_due|amount }}</td>
+          <td class="stat-amount">{{ i.total_due|amount }}</td>
+          <td>{{ i.total_paid|amount }}</td>
+          <td class="stat-amount">{{ i.outstanding|amount }}</td>
+          <td>
+            {% if i.status == 'PAID' %}<span class="badge badge-success">Paid</span>
+            {% elif i.status == 'OVERDUE' %}<span class="badge badge-danger">Overdue</span>
+            {% elif i.status == 'PARTIAL' %}<span class="badge badge-warning">Partial</span>
+            {% else %}<span class="badge badge-muted">Pending</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty-state">Schedule not generated.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if app.status == 'APPROVED' or app.status == 'READY_FOR_DISBURSEMENT' %}
+<div class="card">
+  <div class="card-head"><div><h3 class="card-title">Disbursement</h3><p class="card-sub">Release funds to the customer</p></div></div>
+  <form method="post" action="{% url 'loan_disburse' app.pk %}" class="inline-form">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="form-field"><label>Method</label>
+        <select name="method"><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank transfer</option><option value="MOBILE_MONEY">Mobile money</option><option value="CUSTOMER_ACCOUNT">Customer account</option></select>
+      </div>
+    </div>
+    {% if can_disburse %}<button class="btn btn-success"><i class="fa-solid fa-money-bill-wave"></i> Disburse {{ app.approved_amount|default:app.requested_amount|money }}</button>{% else %}<span class="badge badge-warning">Only tellers and branch managers can disburse.</span>{% endif %}
+  </form>
+</div>
+{% endif %}
+
+<!-- Assess modal -->
+<div class="modal-overlay" id="assessModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Credit Assessment</h3><button class="icon-btn" onclick="closeModal('assessModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'loan_assess' app.pk %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Verified income</label>{{ assess_form.verified_income }}</div>
+        <div class="form-field"><label>Verified expenses</label>{{ assess_form.verified_expenses }}</div>
+        <div class="form-field"><label>Existing obligations</label>{{ assess_form.existing_obligations }}</div>
+        <div class="form-field"><label>Manual score (optional)</label>{{ assess_form.credit_score }}</div>
+        <div class="form-field"><label>Risk rating</label>{{ assess_form.risk_rating }}</div>
+        <div class="form-field"><label>Recommendation</label>{{ assess_form.recommendation }}</div>
+        <div class="form-field"><label>Recommended amount</label>{{ assess_form.recommended_amount }}</div>
+        <div class="form-field"><label>Recommended term (months)</label>{{ assess_form.recommended_term_months }}</div>
+        <div class="form-field span-2"><label>Collateral assessed</label>{{ assess_form.collateral_assessed }}</div>
+        <div class="form-field span-2"><label>Capacity notes</label>{{ assess_form.capacity_notes }}</div>
+        <div class="form-field span-2"><label>Character notes</label>{{ assess_form.character_notes }}</div>
+        <div class="form-field span-2"><label>Collateral notes</label>{{ assess_form.collateral_notes }}</div>
+        <div class="form-field span-2"><label>Conditions</label>{{ assess_form.conditions_notes }}</div>
+        <div class="form-field span-2"><label>Overall notes</label>{{ assess_form.overall_notes }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('assessModal')">Cancel</button>
+        <button class="btn btn-primary">Save Assessment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if app.status == 'SUBMITTED' or app.status == 'UNDER_REVIEW' or app.status == 'CREDIT_ASSESSMENT' or app.status == 'RECOMMENDED' %}
+<!-- Approve / Reject row -->
+<div class="card">
+  <div class="card-head"><div><h3 class="card-title">Decision</h3><p class="card-sub">Approve or reject the application</p></div></div>
+  <div class="form-grid">
+    <div class="form-field">
+      <label>Approval amount</label>
+      <form method="post" action="{% url 'loan_approve' app.pk %}" class="inline-form">
+        {% csrf_token %}
+        <div style="display:flex;gap:10px;">
+          <input type="number" name="amount" step="0.01" min="0" value="{{ app.requested_amount }}">
+          <input type="text" name="comments" placeholder="Comments (optional)">
+          <button class="btn btn-primary" {% if not can_approve %}disabled{% endif %}>Approve</button>
+        </div>
+      </form>
+      {% if not can_approve %}<span class="cell-sub" style="color:var(--danger);">You do not have approval authority.</span>{% endif %}
+    </div>
+    <div class="form-field">
+      <label>Reject with reason</label>
+      <form method="post" action="{% url 'loan_reject' app.pk %}" class="inline-form">
+        {% csrf_token %}
+        <div style="display:flex;gap:10px;">
+          <input type="text" name="reason" placeholder="Rejection reason">
+          <button class="btn btn-danger" {% if not can_approve %}disabled{% endif %}>Reject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

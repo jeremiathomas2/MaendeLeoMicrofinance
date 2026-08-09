@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load mis_filters %}
+{% block title %}Customers · MaendeLeo{% endblock %}
+{% block crumb_path %}Customers{% endblock %}
+{% block crumb_title %}Customers &amp; Groups{% endblock %}
+{% block content %}
+
+<div class="page-actions">
+  <div class="toolbar">
+    <form method="get" class="toolbar-form">
+      <div class="input-icon">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name, ID, phone, NIDA…">
+      </div>
+      <select name="branch" onchange="this.form.submit()">
+        <option value="">All branches</option>
+        {% for b in branches %}<option value="{{ b.id }}" {% if request.GET.branch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+      </select>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+        <option value="INACTIVE" {% if request.GET.status == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+        <option value="DORMANT" {% if request.GET.status == 'DORMANT' %}selected{% endif %}>Dormant</option>
+        <option value="BLACKLISTED" {% if request.GET.status == 'BLACKLISTED' %}selected{% endif %}>Blacklisted</option>
+      </select>
+    </form>
+    <div class="toolbar-right">
+      <button class="btn btn-outline" onclick="openModal('groupModal')"><i class="fa-solid fa-people-group"></i> New Group</button>
+      {% if can_register %}<a class="btn btn-primary" href="{% url 'customer_register' %}"><i class="fa-solid fa-user-plus"></i> Register Customer</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-customers">Customers <span class="tab-count">{{ customers|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-groups">Groups <span class="tab-count">{{ groups|length }}</span></button>
+  <button class="tab-btn" data-tab="tab-documents">Documents &amp; KYC <span class="tab-count">{{ documents|length }}</span></button>
+</div>
+
+<div class="tab-panel active" id="tab-customers">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Customer</th><th>ID</th><th>Branch</th><th>Contact</th><th>Credit Score</th><th>Risk</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for c in customers %}
+          <tr>
+            <td>
+              <div class="branch-cell">
+                <span class="avatar sm" style="background:var(--accent-dim);color:var(--accent);">{{ c.initials }}</span>
+                <div><div class="cell-title">{{ c.full_name }}</div><div class="cell-sub">{{ c.customer_number }}</div></div>
+              </div>
+            </td>
+            <td><span class="code">{{ c.national_id|default:"—" }}</span></td>
+            <td>{{ c.branch.name }}</td>
+            <td>{{ c.phone|default:"—" }}<div class="cell-sub">{{ c.email|default:"" }}</div></td>
+            <td>
+              {% if c.credit_score %}<div class="score-ring" style="--score:{{ c.credit_score }};"><span>{{ c.credit_score }}</span></div>{% else %}<span class="subdued">—</span>{% endif %}
+            </td>
+            <td>{% if c.risk_rating == 'HIGH' or c.risk_rating == 'CRITICAL' %}<span class="badge badge-danger">{{ c.risk_rating }}</span>{% elif c.risk_rating == 'MEDIUM' %}<span class="badge badge-warning">{{ c.risk_rating }}</span>{% else %}<span class="badge badge-success">{{ c.risk_rating }}</span>{% endif %}</td>
+            <td>{% if c.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% elif c.status == 'BLACKLISTED' %}<span class="badge badge-danger">Blacklisted</span>{% else %}<span class="badge badge-muted">{{ c.get_status_display }}</span>{% endif %}</td>
+            <td><a class="btn btn-sm btn-outline" href="{% url 'customer_detail' c.pk %}">View</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-users-slash"></i> No customers found{% if q %} matching "{{ q }}"{% endif %}.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-groups">
+  <div class="grid-3">
+    {% for g in groups %}
+    <div class="card">
+      <div class="group-card-head">
+        <span class="avatar" style="background:var(--info-bg);color:var(--info);">{{ g.name|slice:":1" }}</span>
+        <div>
+          <div class="cell-title">{{ g.name }}</div>
+          <div class="cell-sub">{{ g.group_number }} · {{ g.branch.name }}</div>
+        </div>
+        <span class="badge badge-success">{{ g.member_count }} members</span>
+      </div>
+      <div class="group-meta">
+        <div><i class="fa-solid fa-user-check"></i> Leader: {{ g.leader.full_name|default:"—" }}</div>
+        <div><i class="fa-solid fa-calendar-week"></i> {{ g.get_meeting_frequency_display }} · {{ g.meeting_day|default:"any day" }}</div>
+        <div><i class="fa-solid fa-location-dot"></i> {{ g.meeting_location|default:"—" }}</div>
+      </div>
+      <details class="group-members">
+        <summary>Members ({{ g.member_count }})</summary>
+        {% for m in g.members.all %}<div class="member-row"><span class="avatar sm">{{ m.customer.initials }}</span>{{ m.customer.full_name }} <span class="subdued">{{ m.get_role_display }}</span></div>{% empty %}<div class="subdued">No members</div>{% endfor %}
+      </details>
+    </div>
+    {% empty %}
+    <div class="card"><div class="empty-state"><i class="fa-solid fa-people-group"></i> No groups created yet.</div></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-documents">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Customer</th><th>Document</th><th>Uploaded</th><th>Uploaded By</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for d in documents %}
+          <tr>
+            <td><div class="cell-title">{{ d.customer.full_name }}</div><div class="cell-sub">{{ d.customer.customer_number }}</div></td>
+            <td>{{ d.get_document_type_display }}</td>
+            <td>{{ d.upload_date|date:"d M Y H:i" }}</td>
+            <td>{{ d.uploaded_by.get_full_name|default:"—" }}</td>
+            <td>
+              {% if d.verification_status == 'VERIFIED' %}<span class="badge badge-success">Verified</span>
+              {% elif d.verification_status == 'REJECTED' %}<span class="badge badge-danger">Rejected</span>
+              {% else %}<span class="badge badge-warning">{{ d.get_verification_status_display }}</span>{% endif %}
+            </td>
+            <td>
+              {% if can_verify and d.verification_status != 'VERIFIED' %}
+              <div class="row-actions">
+                <form method="post" action="{% url 'customer_document_verify' d.pk %}">{% csrf_token %}<input type="hidden" name="action" value="verify"><button class="btn btn-sm btn-success" title="Verify">Verify</button></form>
+                <form method="post" action="{% url 'customer_document_verify' d.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-danger" title="Reject">Reject</button></form>
+              </div>
+              {% else %}<span class="subdued">—</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6"><div class="empty-state">No documents uploaded yet.</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Group modal -->
+<div class="modal-overlay" id="groupModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Create Customer Group</h3><button class="icon-btn" onclick="closeModal('groupModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'group_create' %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-field"><label>Group name</label>{{ group_form.name }}</div>
+        <div class="form-field"><label>Branch</label>{{ group_form.branch }}</div>
+        <div class="form-field"><label>Formation date</label>{{ group_form.formation_date }}</div>
+        <div class="form-field"><label>Leader</label>{{ group_form.leader }}</div>
+        <div class="form-field"><label>Meeting location</label>{{ group_form.meeting_location }}</div>
+        <div class="form-field"><label>Meeting frequency</label>{{ group_form.meeting_frequency }}</div>
+        <div class="form-field"><label>Meeting day</label>{{ group_form.meeting_day }}</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="closeModal('groupModal')">Cancel</button>
+        <button class="btn btn-primary">Create Group</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
