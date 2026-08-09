@@ -9,6 +9,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
+<script>
+/* Restore theme mode + custom colors before first paint (prevents flash). */
+(function () {
+  function shade(hex, percent) {
+    hex = hex.replace('#', '');
+    if (hex.length !== 6) return '#' + hex;
+    var num = parseInt(hex, 16), r = (num >> 16) + Math.round(2.55 * percent),
+        g = ((num >> 8) & 0xff) + Math.round(2.55 * percent), b = (num & 0xff) + Math.round(2.55 * percent);
+    r = Math.min(255, Math.max(0, r)); g = Math.min(255, Math.max(0, g)); b = Math.min(255, Math.max(0, b));
+    return '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+  }
+  function textOn(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length !== 6) return '#17241F';
+    var num = parseInt(hex, 16), r = (num >> 16) & 0xff, g = ((num >> 8) & 0xff), b = num & 0xff;
+    return ((0.299 * r + 0.587 * g + 0.114 * b) / 255) > 0.6 ? '#17241F' : '#F5F6F3';
+  }
+  try {
+    var mode = localStorage.getItem('mdl_mode');
+    if (!mode) {
+      mode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+    var t = JSON.parse(localStorage.getItem('mdl_theme') || 'null');
+    if (t) {
+      var s = document.documentElement.style;
+      if (t.sidebar) { s.setProperty('--sidebar-bg', t.sidebar); s.setProperty('--sidebar-bg-2', shade(t.sidebar, -14)); }
+      if (t.header) { s.setProperty('--header-bg', t.header); s.setProperty('--header-text', textOn(t.header)); }
+      if (t.accent) { s.setProperty('--accent', t.accent); s.setProperty('--accent-dim', shade(t.accent, 62)); }
+      if (t.speed) { s.setProperty('--dur', t.speed + 'ms'); }
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 <body>
 {% if request.user.is_authenticated %}
@@ -27,40 +61,40 @@
     <nav class="sidebar-scroll">
       <div class="nav-group">
         <div class="nav-label">Overview</div>
-        <a class="nav-item{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}" href="{% url 'dashboard' %}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}" data-nav="dashboard" href="{% url 'dashboard' %}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
       </div>
 
       <div class="nav-group">
         <div class="nav-label">Customers</div>
-        <a class="nav-item{% if request.resolver_match.url_name == 'customers_page' or request.resolver_match.url_name == 'customer_detail' or request.resolver_match.url_name == 'customer_register' %} active{% endif %}" href="{% url 'customers_page' %}"><i class="fa-solid fa-users"></i><span>Customers &amp; Groups</span></a>
-        <a class="nav-item{% if request.resolver_match.url_name == 'savings_page' %} active{% endif %}" href="{% url 'savings_page' %}"><i class="fa-solid fa-piggy-bank"></i><span>Savings</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'customers_page' or request.resolver_match.url_name == 'customer_detail' or request.resolver_match.url_name == 'customer_register' %} active{% endif %}" data-nav="customers" href="{% url 'customers_page' %}"><i class="fa-solid fa-users"></i><span>Customers &amp; Groups</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'savings_page' %} active{% endif %}" data-nav="savings" href="{% url 'savings_page' %}"><i class="fa-solid fa-piggy-bank"></i><span>Savings</span></a>
       </div>
 
       <div class="nav-group">
         <div class="nav-label">Lending</div>
-        <a class="nav-item{% if 'loans' in request.resolver_match.url_name or request.resolver_match.url_name == 'loan_application_detail' %} active{% endif %}" href="{% url 'loans_page' %}"><i class="fa-solid fa-hand-holding-dollar"></i><span>Loans</span></a>
-        <a class="nav-item{% if request.resolver_match.url_name == 'collections_page' %} active{% endif %}" href="{% url 'collections_page' %}"><i class="fa-solid fa-people-arrows"></i><span>Collections</span></a>
+        <a class="nav-item{% if 'loans' in request.resolver_match.url_name or request.resolver_match.url_name == 'loan_application_detail' %} active{% endif %}" data-nav="loans" href="{% url 'loans_page' %}"><i class="fa-solid fa-hand-holding-dollar"></i><span>Loans</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'collections_page' %} active{% endif %}" data-nav="collections" href="{% url 'collections_page' %}"><i class="fa-solid fa-people-arrows"></i><span>Collections</span></a>
       </div>
 
       <div class="nav-group">
         <div class="nav-label">Operations</div>
-        <a class="nav-item{% if request.resolver_match.url_name == 'cash_page' %} active{% endif %}" href="{% url 'cash_page' %}"><i class="fa-solid fa-cash-register"></i><span>Cash &amp; Tellers</span></a>
-        <a class="nav-item{% if 'accounting' in request.resolver_match.url_name or 'statements' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'accounting_page' %}"><i class="fa-solid fa-scale-balanced"></i><span>Accounting</span></a>
+        <a class="nav-item{% if request.resolver_match.url_name == 'cash_page' %} active{% endif %}" data-nav="cash" href="{% url 'cash_page' %}"><i class="fa-solid fa-cash-register"></i><span>Cash &amp; Tellers</span></a>
+        <a class="nav-item{% if 'accounting' in request.resolver_match.url_name or 'statements' in request.resolver_match.url_name %} active{% endif %}" data-nav="accounting" href="{% url 'accounting_page' %}"><i class="fa-solid fa-scale-balanced"></i><span>Accounting</span></a>
       </div>
 
       <div class="nav-group">
         <div class="nav-label">Insight</div>
-        <a class="nav-item{% if 'report' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-column"></i><span>Reports</span></a>
-        <a class="nav-item{% if 'audit' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'audit_page' %}"><i class="fa-solid fa-shield-halved"></i><span>Audit Trail</span></a>
+        <a class="nav-item{% if 'report' in request.resolver_match.url_name %} active{% endif %}" data-nav="reports" href="{% url 'reports_page' %}"><i class="fa-solid fa-chart-column"></i><span>Reports</span></a>
+        <a class="nav-item{% if 'audit' in request.resolver_match.url_name %} active{% endif %}" data-nav="audit" href="{% url 'audit_page' %}"><i class="fa-solid fa-shield-halved"></i><span>Audit Trail</span></a>
       </div>
 
       <div class="nav-group">
         <div class="nav-label">Administration</div>
         {% if request.user.is_superuser or perms.auth.change_user %}
-        <a class="nav-item{% if 'users' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'users_page' %}"><i class="fa-solid fa-user-gear"></i><span>Users &amp; Roles</span></a>
+        <a class="nav-item{% if 'users' in request.resolver_match.url_name %} active{% endif %}" data-nav="users" href="{% url 'users_page' %}"><i class="fa-solid fa-user-gear"></i><span>Users &amp; Roles</span></a>
         {% endif %}
-        <a class="nav-item{% if 'branches' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'branches_page' %}"><i class="fa-solid fa-code-branch"></i><span>Branches</span></a>
-        <a class="nav-item{% if 'settings' in request.resolver_match.url_name %} active{% endif %}" href="{% url 'settings_page' %}"><i class="fa-solid fa-sliders"></i><span>System Settings</span></a>
+        <a class="nav-item{% if 'branches' in request.resolver_match.url_name %} active{% endif %}" data-nav="branches" href="{% url 'branches_page' %}"><i class="fa-solid fa-code-branch"></i><span>Branches</span></a>
+        <a class="nav-item{% if 'settings' in request.resolver_match.url_name %} active{% endif %}" data-nav="settings" href="{% url 'settings_page' %}"><i class="fa-solid fa-sliders"></i><span>System Settings</span></a>
       </div>
     </nav>
 
@@ -84,6 +118,7 @@
       </div>
 
       <div class="topbar-actions">
+        <button class="icon-btn" id="modeBtn" title="Toggle light / dark mode"><i class="fa-solid fa-moon" id="modeIcon"></i></button>
         <button class="icon-btn" id="themeBtn" title="Customize theme"><i class="fa-solid fa-palette"></i></button>
 
         <div class="dropdown">
@@ -171,6 +206,13 @@
     <button class="icon-btn" id="drawerClose"><i class="fa-solid fa-xmark"></i></button>
   </div>
   <div class="drawer-body">
+    <div class="drawer-section">
+      <h4>Appearance</h4>
+      <div class="seg" id="modeSeg">
+        <button type="button" class="seg-btn" data-mode="light"><i class="fa-solid fa-sun"></i> Light</button>
+        <button type="button" class="seg-btn" data-mode="dark"><i class="fa-solid fa-moon"></i> Dark</button>
+      </div>
+    </div>
     <div class="drawer-section">
       <h4>Palette Presets</h4>
       <div class="swatch-row" id="presetRow"></div>

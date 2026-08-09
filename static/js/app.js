@@ -4,24 +4,56 @@
 (function () {
   'use strict';
 
+  /* ---------- persistence helpers ---------- */
+  var NKEY = 'mdl_nav', TABKEY = 'mdl_tab', TKEY = 'mdl_theme', MKEY = 'mdl_mode';
+  function readJSON(k, fb) {
+    try { var v = JSON.parse(localStorage.getItem(k)); return v === null ? fb : v; } catch (e) { return fb; }
+  }
+  var themeState = Object.assign({
+    sidebar: null, header: null, accent: null, anim: true, speed: 220, compact: false
+  }, readJSON(TKEY, {}));
+  function saveTheme() { localStorage.setItem(TKEY, JSON.stringify(themeState)); }
+  function navKey() {
+    var a = document.querySelector('.nav-item.active');
+    return a ? (a.dataset.nav || null) : null;
+  }
+
   /* ---------- sidebar collapse / mobile ---------- */
   var app = document.getElementById('app');
   var collapseBtn = document.getElementById('collapseBtn');
   var menuBtn = document.getElementById('menuBtn');
   var sidebarOverlay = document.getElementById('sidebarOverlay');
 
-  if (collapseBtn) collapseBtn.addEventListener('click', function () { app.classList.toggle('collapsed'); });
+  if (collapseBtn) collapseBtn.addEventListener('click', function () {
+    app.classList.toggle('collapsed');
+    themeState.compact = app.classList.contains('collapsed');
+    saveTheme();
+  });
   if (menuBtn) menuBtn.addEventListener('click', function () {
     if (window.innerWidth <= 1024) {
       app.classList.toggle('mobile-open');
       if (sidebarOverlay) sidebarOverlay.classList.toggle('open', app.classList.contains('mobile-open'));
     } else {
       app.classList.toggle('collapsed');
+      themeState.compact = app.classList.contains('collapsed');
+      saveTheme();
     }
   });
   if (sidebarOverlay) sidebarOverlay.addEventListener('click', function () {
     app.classList.remove('mobile-open');
     sidebarOverlay.classList.remove('open');
+  });
+
+  /* ---------- nav & menu persistence ---------- */
+  var navItems = document.querySelectorAll('.nav-item');
+  if (!navKey() && localStorage.getItem(NKEY)) {
+    var savedNav = document.querySelector('.nav-item[data-nav="' + localStorage.getItem(NKEY) + '"]');
+    if (savedNav) savedNav.classList.add('active');
+  }
+  navItems.forEach(function (el) {
+    el.addEventListener('click', function () {
+      if (el.dataset.nav) localStorage.setItem(NKEY, el.dataset.nav);
+    });
   });
 
   /* ---------- tabs within views ---------- */
@@ -36,8 +68,23 @@
         container.querySelectorAll('.tab-panel').forEach(function (p) {
           p.classList.toggle('active', p.id === panelId);
         });
+        var key = navKey();
+        if (key) localStorage.setItem(TABKEY, JSON.stringify({ k: key, tab: panelId }));
       });
     });
+    var storedTab = readJSON(TABKEY, null);
+    if (storedTab && storedTab.tab && storedTab.k === navKey()) {
+      var container = bar.parentElement;
+      btns.forEach(function (b) {
+        var isActive = b.dataset.tab === storedTab.tab;
+        b.classList.toggle('active', isActive);
+        if (isActive) {
+          container.querySelectorAll('.tab-panel').forEach(function (p) {
+            p.classList.toggle('active', p.id === storedTab.tab);
+          });
+        }
+      });
+    }
   });
 
   /* ---------- modal helpers ---------- */
@@ -135,6 +182,50 @@
     return ((0.299 * r + 0.587 * g + 0.114 * b) / 255) > 0.6 ? '#17241F' : '#F5F6F3';
   }
 
+  function applyColors(sidebar, header, accent) {
+    if (sidebar) { root.setProperty('--sidebar-bg', sidebar); root.setProperty('--sidebar-bg-2', shade(sidebar, -14)); }
+    if (header) { root.setProperty('--header-bg', header); root.setProperty('--header-text', textOn(header)); }
+    if (accent) { root.setProperty('--accent', accent); root.setProperty('--accent-dim', shade(accent, 62)); }
+  }
+
+  /* ---------- appearance / light-dark mode ---------- */
+  function currentMode() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+  function computedVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function syncModeUI() {
+    var mode = currentMode();
+    var icon = document.getElementById('modeIcon');
+    if (icon) icon.className = 'fa-solid ' + (mode === 'dark' ? 'fa-sun' : 'fa-moon');
+    var seg = document.getElementById('modeSeg');
+    if (seg) {
+      seg.querySelectorAll('.seg-btn').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+  }
+  function applyMode(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem(MKEY, mode);
+    if (!themeState.sidebar) { var ps = document.getElementById('pickSidebar'); if (ps) ps.value = computedVar('--sidebar-bg'); }
+    if (!themeState.header) { var ph = document.getElementById('pickHeader'); if (ph) ph.value = computedVar('--header-bg'); }
+    if (!themeState.accent) { var pa = document.getElementById('pickAccent'); if (pa) pa.value = computedVar('--accent'); }
+    syncModeUI();
+    syncPresetActive();
+  }
+  var modeBtn = document.getElementById('modeBtn');
+  if (modeBtn) modeBtn.addEventListener('click', function () {
+    applyMode(currentMode() === 'dark' ? 'light' : 'dark');
+  });
+  var modeSeg = document.getElementById('modeSeg');
+  if (modeSeg) modeSeg.addEventListener('click', function (e) {
+    var b = e.target.closest('.seg-btn');
+    if (b && b.dataset.mode) applyMode(b.dataset.mode);
+  });
+  syncModeUI();
+
   var presets = [
     { name: 'Ledger Green', sidebar: '#173C34', header: '#FFFFFF', accent: '#D9A441' },
     { name: 'Sisal Navy', sidebar: '#122A45', header: '#FFFFFF', accent: '#4C8DFF' },
@@ -144,83 +235,137 @@
     { name: 'Savanna Plum', sidebar: '#3B1F3A', header: '#FFFFFF', accent: '#E0A0D8' }
   ];
   var presetRow = document.getElementById('presetRow');
+  function presetMatch(p) {
+    return themeState.sidebar === p.sidebar && themeState.header === p.header && themeState.accent === p.accent;
+  }
+  function syncPresetActive() {
+    if (!presetRow) return;
+    var none = !themeState.sidebar && !themeState.header && !themeState.accent;
+    presetRow.querySelectorAll('.swatch').forEach(function (s, i) {
+      s.classList.toggle('active', (none && currentMode() === 'light') ? i === 0 : presetMatch(presets[i]));
+    });
+  }
+  function syncPickers(sidebar, header, accent) {
+    var ps = document.getElementById('pickSidebar'), ph = document.getElementById('pickHeader'), pa = document.getElementById('pickAccent');
+    if (ps && sidebar) ps.value = sidebar;
+    if (ph && header) ph.value = header;
+    if (pa && accent) pa.value = accent;
+  }
+  function applyPreset(p) {
+    themeState.sidebar = p.sidebar;
+    themeState.header = p.header;
+    themeState.accent = p.accent;
+    applyColors(p.sidebar, p.header, p.accent);
+    saveTheme();
+    syncPickers(p.sidebar, p.header, p.accent);
+    syncPresetActive();
+  }
+
   if (presetRow) {
     presetRow.innerHTML = presets.map(function (p, i) {
       return '<div class="preset-item">' +
-        '<div class="swatch' + (i === 0 ? ' active' : '') + '" data-idx="' + i +
+        '<div class="swatch" data-idx="' + i +
         '" style="background:linear-gradient(135deg, ' + p.sidebar + ' 50%, ' + p.accent + ' 50%);"></div>' +
         '<div class="preset-name">' + p.name + '</div></div>';
     }).join('');
-
     presetRow.addEventListener('click', function (e) {
       var sw = e.target.closest('.swatch');
       if (!sw) return;
-      presetRow.querySelectorAll('.swatch').forEach(function (s) { s.classList.remove('active'); });
-      sw.classList.add('active');
-      applyTheme(presets[sw.dataset.idx]);
+      applyPreset(presets[sw.dataset.idx]);
     });
   }
 
-  function applyTheme(p) {
-    root.setProperty('--sidebar-bg', p.sidebar);
-    root.setProperty('--sidebar-bg-2', shade(p.sidebar, -14));
-    root.setProperty('--header-bg', p.header);
-    root.setProperty('--header-text', textOn(p.header));
-    root.setProperty('--accent', p.accent);
-    root.setProperty('--accent-dim', shade(p.accent, 62));
-    var ps = document.getElementById('pickSidebar'), ph = document.getElementById('pickHeader'), pa = document.getElementById('pickAccent');
-    if (ps) ps.value = p.sidebar;
-    if (ph) ph.value = p.header;
-    if (pa) pa.value = p.accent;
-  }
-
   var pickSidebar = document.getElementById('pickSidebar');
-  if (pickSidebar) pickSidebar.addEventListener('input', function (e) {
-    root.setProperty('--sidebar-bg', e.target.value);
-    root.setProperty('--sidebar-bg-2', shade(e.target.value, -14));
-    if (presetRow) presetRow.querySelectorAll('.swatch').forEach(function (s) { s.classList.remove('active'); });
-  });
+  if (pickSidebar) {
+    pickSidebar.value = themeState.sidebar || computedVar('--sidebar-bg') || '#173C34';
+    pickSidebar.addEventListener('input', function (e) {
+      themeState.sidebar = e.target.value;
+      applyColors(themeState.sidebar, themeState.header, themeState.accent);
+      saveTheme();
+      syncPresetActive();
+    });
+  }
   var pickHeader = document.getElementById('pickHeader');
-  if (pickHeader) pickHeader.addEventListener('input', function (e) {
-    root.setProperty('--header-bg', e.target.value);
-    root.setProperty('--header-text', textOn(e.target.value));
-  });
+  if (pickHeader) {
+    pickHeader.value = themeState.header || computedVar('--header-bg') || '#FFFFFF';
+    pickHeader.addEventListener('input', function (e) {
+      themeState.header = e.target.value;
+      applyColors(themeState.sidebar, themeState.header, themeState.accent);
+      saveTheme();
+      syncPresetActive();
+    });
+  }
   var pickAccent = document.getElementById('pickAccent');
-  if (pickAccent) pickAccent.addEventListener('input', function (e) {
-    root.setProperty('--accent', e.target.value);
-    root.setProperty('--accent-dim', shade(e.target.value, 62));
-  });
+  if (pickAccent) {
+    pickAccent.value = themeState.accent || computedVar('--accent') || '#D9A441';
+    pickAccent.addEventListener('input', function (e) {
+      themeState.accent = e.target.value;
+      applyColors(themeState.sidebar, themeState.header, themeState.accent);
+      saveTheme();
+      syncPresetActive();
+    });
+  }
 
   var animToggle = document.getElementById('animToggle');
   if (animToggle) animToggle.addEventListener('click', function () {
-    animToggle.classList.toggle('on');
-    document.documentElement.setAttribute('data-anim', animToggle.classList.contains('on') ? 'on' : 'off');
+    themeState.anim = !animToggle.classList.contains('on');
+    animToggle.classList.toggle('on', themeState.anim);
+    document.documentElement.setAttribute('data-anim', themeState.anim ? 'on' : 'off');
+    saveTheme();
   });
 
   document.querySelectorAll('.speed-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.speed-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      root.setProperty('--dur', btn.dataset.speed + 'ms');
+      themeState.speed = parseInt(btn.dataset.speed, 10);
+      root.setProperty('--dur', themeState.speed + 'ms');
+      saveTheme();
     });
   });
 
   var compactToggle = document.getElementById('compactToggle');
   if (compactToggle) compactToggle.addEventListener('click', function () {
     compactToggle.classList.toggle('on');
-    if (app) app.classList.toggle('collapsed');
+    if (app) {
+      app.classList.toggle('collapsed', compactToggle.classList.contains('on'));
+      themeState.compact = compactToggle.classList.contains('on');
+      saveTheme();
+    }
   });
 
   var resetTheme = document.getElementById('resetTheme');
   if (resetTheme) resetTheme.addEventListener('click', function () {
-    applyTheme(presets[0]);
-    if (presetRow) presetRow.querySelectorAll('.swatch').forEach(function (s, i) { s.classList.toggle('active', i === 0); });
+    localStorage.removeItem(TKEY);
+    themeState = { sidebar: null, header: null, accent: null, anim: true, speed: 220, compact: false };
+    ['--sidebar-bg', '--sidebar-bg-2', '--header-bg', '--header-text', '--accent', '--accent-dim'].forEach(function (v) {
+      root.removeProperty(v);
+    });
     root.setProperty('--dur', '220ms');
-    document.querySelectorAll('.speed-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.speed === '220'); });
-    if (animToggle) { animToggle.classList.add('on'); document.documentElement.setAttribute('data-anim', 'on'); }
+    document.documentElement.setAttribute('data-anim', 'on');
+    if (animToggle) animToggle.classList.add('on');
     if (app) app.classList.remove('collapsed');
     if (compactToggle) compactToggle.classList.remove('on');
+    document.querySelectorAll('.speed-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.speed === '220'); });
+    var rs = document.getElementById('pickSidebar'); if (rs) rs.value = computedVar('--sidebar-bg');
+    var rh = document.getElementById('pickHeader'); if (rh) rh.value = computedVar('--header-bg');
+    var ra = document.getElementById('pickAccent'); if (ra) ra.value = computedVar('--accent');
+    syncPresetActive();
   });
+
+  /* ---------- apply persisted theme on load ---------- */
+  if (themeState.sidebar || themeState.header || themeState.accent) {
+    applyColors(themeState.sidebar, themeState.header, themeState.accent);
+  }
+  if (themeState.speed) root.setProperty('--dur', themeState.speed + 'ms');
+  document.documentElement.setAttribute('data-anim', themeState.anim ? 'on' : 'off');
+  if (animToggle) animToggle.classList.toggle('on', themeState.anim);
+  if (app && themeState.compact && window.innerWidth > 1024) app.classList.add('collapsed');
+  if (compactToggle) compactToggle.classList.toggle('on', themeState.compact);
+  document.querySelectorAll('.speed-btn').forEach(function (b) {
+    b.classList.toggle('active', parseInt(b.dataset.speed, 10) === themeState.speed);
+  });
+  syncPresetActive();
 
   /* ---------- splash redirect ---------- */
   var splashRedirect = document.getElementById('splashRedirect');
