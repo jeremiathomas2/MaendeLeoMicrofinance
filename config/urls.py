@@ -19,7 +19,7 @@ from apps.loans.views import (
     loan_application_create, loan_application_detail, loan_application_submit, loan_approve,
     loan_assess, loan_disburse, loan_reject, loan_repay, loans_page, repayment_reverse,
 )
-from apps.organization.views import branch_create, branches_page, settings_page, settings_save
+from apps.organization.views import branch_create, branch_delete, branch_edit, branches_page, settings_page, settings_save
 from apps.reports.report_views import report_generate
 from apps.reports.views import dashboard, reports_page
 from apps.savings.views import savings_deposit, savings_open, savings_page, savings_withdraw
@@ -87,6 +87,8 @@ urlpatterns = [
 
     path('branches/', branches_page, name='branches_page'),
     path('branches/add/', branch_create, name='branch_create'),
+    path('branches/<int:pk>/edit/', branch_edit, name='branch_edit'),
+    path('branches/<int:pk>/delete/', branch_delete, name='branch_delete'),
 
     path('settings/', settings_page, name='settings_page'),
     path('settings/save/', settings_save, name='settings_save'),

@@ -7,47 +7,84 @@
 
 <div class="page-actions">
   <div class="toolbar">
+    <form method="get" class="toolbar-form">
+      <div class="input-icon">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name, code, region, phone, email…">
+      </div>
+      <select name="status" onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        <option value="ACTIVE" {% if status == 'ACTIVE' %}selected{% endif %}>Active</option>
+        <option value="INACTIVE" {% if status == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+        <option value="CLOSED" {% if status == 'CLOSED' %}selected{% endif %}>Closed</option>
+      </select>
+      <select name="region" onchange="this.form.submit()">
+        <option value="">All regions</option>
+        {% for r in regions %}<option value="{{ r }}" {% if region == r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+      </select>
+      {% if q or status or region %}<a class="btn btn-sm btn-outline" href="{% url 'branches_page' %}">Clear</a>{% endif %}
+    </form>
     <div class="toolbar-right">
-      <button class="btn btn-primary" onclick="openModal('branchModal')"><i class="fa-solid fa-plus"></i> Add Branch</button>
+      {% if can_add %}<button class="btn btn-primary" onclick="resetBranchForm(); openModal('branchModal')"><i class="fa-solid fa-plus"></i> Add Branch</button>{% endif %}
     </div>
   </div>
 </div>
 
 <div class="card">
   <div class="table-wrap">
-    <table class="table">
-      <thead><tr><th>Branch</th><th>Region</th><th>Contact</th><th>Active Loans</th><th>Gross Portfolio</th><th>PAR 30+</th><th>Customers</th><th>Status</th></tr></thead>
+    <table class="table table-scroll">
+      <thead>
+        <tr>
+          <th>Branch</th><th>Region</th><th>Contact</th><th>Active Loans</th>
+          <th>Gross Portfolio</th><th>PAR 30+</th><th>Customers</th><th>Status</th><th></th>
+        </tr>
+      </thead>
       <tbody>
         {% for b in branches %}
-        {% with p=performance|get_item:b.id %}
+        {% with s=stats|get_item:b.id %}
         <tr>
           <td><div class="branch-cell"><span class="avatar sm">{{ b.name|slice:":1" }}</span><div><div class="cell-title">{{ b.name }}</div><div class="cell-sub">{{ b.code }}</div></div></div></td>
           <td>{{ b.region|default:"—" }}</td>
           <td>{{ b.phone|default:"—" }}<div class="cell-sub">{{ b.email|default:"" }}</div></td>
-          <td>{% if p %}{{ p.active_loans }}{% else %}0{% endif %}</td>
-          <td class="stat-amount">{% if p %}{{ p.gross|money }}{% else %}—{% endif %}</td>
-          <td>{% if p %}{% if p.par30_pct > 5 %}<span class="badge badge-danger">{{ p.par30_pct|pct }}</span>{% else %}<span class="badge badge-success">{{ p.par30_pct|pct }}</span>{% endif %}{% else %}—{% endif %}</td>
-          <td>{% if p %}{{ p.customers }}{% else %}{{ b.customers.count }}{% endif %}</td>
+          <td>{% if s %}{{ s.active_loans }}{% else %}0{% endif %}</td>
+          <td class="stat-amount">{% if s %}{{ s.gross|money }}{% else %}—{% endif %}</td>
+          <td>{% if s %}{% if s.par30_pct > 5 %}<span class="badge badge-danger">{{ s.par30_pct|pct }}</span>{% else %}<span class="badge badge-success">{{ s.par30_pct|pct }}</span>{% endif %}{% else %}—{% endif %}</td>
+          <td>{% if s %}{{ s.customers }}{% else %}0{% endif %}</td>
           <td>{% if b.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-muted">{{ b.get_status_display }}</span>{% endif %}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn btn-sm btn-outline" onclick="openBranchDetail({{ b.id }})" title="View details"><i class="fa-solid fa-eye"></i></button>
+              {% if can_edit %}<button class="btn btn-sm btn-outline" onclick="openBranchEdit({{ b.id }})" title="Edit"><i class="fa-solid fa-pen"></i></button>{% endif %}
+              {% if can_delete %}
+              <form method="post" action="{% url 'branch_delete' b.pk %}" onsubmit="return confirm('Delete branch {{ b.name }}? This cannot be undone.')">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% endwith %}
         {% empty %}
-        <tr><td colspan="8"><div class="empty-state">No branches yet.</div></td></tr>
+        <tr><td colspan="9"><div class="empty-state"><i class="fa-solid fa-code-branch"></i> No branches found{% if q or status or region %} matching the current filters{% endif %}.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
+<!-- Add / Edit Branch modal -->
 <div class="modal-overlay" id="branchModal">
   <div class="modal">
-    <div class="modal-head"><h3>Add Branch</h3><button class="icon-btn" onclick="closeModal('branchModal')"><i class="fa-solid fa-xmark"></i></button></div>
-    <form method="post" action="{% url 'branch_create' %}">
+    <div class="modal-head"><h3 id="branchModalTitle">Add Branch</h3><button class="icon-btn" onclick="closeModal('branchModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <form method="post" action="{% url 'branch_create' %}" id="branchForm">
       {% csrf_token %}
       <div class="form-grid">
         <div class="form-field"><label>Code</label>{{ form.code }}</div>
         <div class="form-field"><label>Name</label>{{ form.name }}</div>
         <div class="form-field"><label>Region</label>{{ form.region }}</div>
+        <div class="form-field"><label>Manager</label>{{ form.manager }}</div>
+        <div class="form-field"><label>Status</label>{{ form.status }}</div>
         <div class="form-field"><label>Phone</label>{{ form.phone }}</div>
         <div class="form-field"><label>Email</label>{{ form.email }}</div>
         <div class="form-field"><label>Opening date</label>{{ form.opening_date }}</div>
@@ -56,10 +93,154 @@
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-outline" onclick="closeModal('branchModal')">Cancel</button>
-        <button class="btn btn-primary">Add Branch</button>
+        <button class="btn btn-primary" id="branchSubmitBtn">Add Branch</button>
       </div>
     </form>
   </div>
 </div>
 
+<!-- Branch detail modal -->
+<div class="modal-overlay" id="branchDetailModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h3 id="detName">Branch</h3>
+      <button class="icon-btn" onclick="closeModal('branchDetailModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-head">
+        <span class="avatar" id="detAvatar">B</span>
+        <div>
+          <div class="cell-title" id="detName2">—</div>
+          <div class="cell-sub" id="detCode">—</div>
+        </div>
+        <span class="badge badge-success" id="detStatus">—</span>
+      </div>
+
+      <div class="detail-grid">
+        <div><div class="detail-label">Region</div><div class="detail-value" id="detRegion">—</div></div>
+        <div><div class="detail-label">Manager</div><div class="detail-value" id="detManager">—</div></div>
+        <div><div class="detail-label">Phone</div><div class="detail-value" id="detPhone">—</div></div>
+        <div><div class="detail-label">Email</div><div class="detail-value" id="detEmail">—</div></div>
+        <div><div class="detail-label">Address</div><div class="detail-value" id="detAddress">—</div></div>
+        <div><div class="detail-label">Opening date</div><div class="detail-value" id="detOpened">—</div></div>
+        <div><div class="detail-label">Operating hours</div><div class="detail-value" id="detHours">—</div></div>
+        <div><div class="detail-label">Record created</div><div class="detail-value" id="detCreated">—</div></div>
+        <div><div class="detail-label">Last updated</div><div class="detail-value" id="detUpdated">—</div></div>
+      </div>
+
+      <div class="detail-section-label">Portfolio</div>
+      <div class="detail-kpis">
+        <div class="detail-kpi"><div class="detail-kpi-value" id="detActiveLoans">0</div><div class="kpi-label">Active Loans</div></div>
+        <div class="detail-kpi"><div class="detail-kpi-value" id="detGross">—</div><div class="kpi-label">Gross Portfolio</div></div>
+        <div class="detail-kpi"><div class="detail-kpi-value" id="detPar">—</div><div class="kpi-label">PAR 30+</div></div>
+        <div class="detail-kpi"><div class="detail-kpi-value" id="detCustomers">0</div><div class="kpi-label">Customers</div></div>
+        <div class="detail-kpi"><div class="detail-kpi-value" id="detSavings">0</div><div class="kpi-label">Savings Accounts</div></div>
+      </div>
+
+      <div class="detail-section-label">Staff</div>
+      <div id="detStaff" class="detail-list"></div>
+
+      <div class="detail-section-label">Departments</div>
+      <div id="detDepartments" class="detail-badges"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('branchDetailModal')">Close</button>
+      {% if can_edit %}<button class="btn btn-primary" id="detEditBtn" onclick="editFromDetail()">Edit Branch</button>{% endif %}
+    </div>
+  </div>
+</div>
+
+{{ branch_payload|json_script:"branchData" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var dataEl = document.getElementById('branchData');
+  var BRANCHES = dataEl ? JSON.parse(dataEl.textContent) : [];
+  function find(id) { return BRANCHES.find(function (b) { return b.pk === id; }); }
+  function el(id) { return document.getElementById(id); }
+
+  window.resetBranchForm = function () {
+    var form = el('branchForm');
+    if (form) form.action = '{% url 'branch_create' %}';
+    el('branchModalTitle').textContent = 'Add Branch';
+    el('branchSubmitBtn').textContent = 'Add Branch';
+    ['code','name','region','phone','email','address','opening_date','operating_hours'].forEach(function (f) {
+      if (el('id_' + f)) el('id_' + f).value = '';
+    });
+    if (el('id_status')) el('id_status').value = 'ACTIVE';
+    if (el('id_manager')) el('id_manager').value = '';
+  };
+
+  function setField(f, v) {
+    var node = el('id_' + f);
+    if (node) node.value = v || '';
+  }
+
+  window.openBranchEdit = function (id) {
+    var b = find(id);
+    if (!b) return;
+    el('branchForm').action = '/branches/' + id + '/edit/';
+    el('branchModalTitle').textContent = 'Edit Branch';
+    el('branchSubmitBtn').textContent = 'Save Changes';
+    setField('code', b.code); setField('name', b.name); setField('region', b.region);
+    setField('phone', b.phone); setField('email', b.email); setField('address', b.address);
+    setField('opening_date', b.opening_date); setField('operating_hours', b.operating_hours);
+    setField('status', b.status_code); setField('manager', b.manager_id);
+    openModal('branchModal');
+  };
+
+  var currentDetailId = null;
+  window.editFromDetail = function () {
+    if (currentDetailId) { closeModal('branchDetailModal'); openBranchEdit(currentDetailId); }
+  };
+
+  window.openBranchDetail = function (id) {
+    var b = find(id);
+    if (!b) return;
+    currentDetailId = id;
+    var s = b.stats || {};
+    el('detName').textContent = b.name;
+    el('detName2').textContent = b.name;
+    el('detCode').textContent = b.code;
+    el('detAvatar').textContent = (b.name.charAt(0) || 'B').toUpperCase();
+    el('detStatus').textContent = b.status;
+    el('detStatus').className = 'badge ' + (b.status_code === 'ACTIVE' ? 'badge-success' : 'badge-muted');
+    el('detRegion').textContent = b.region || '—';
+    el('detManager').textContent = b.manager || '—';
+    el('detPhone').textContent = b.phone || '—';
+    el('detEmail').textContent = b.email || '—';
+    el('detAddress').textContent = b.address || '—';
+    el('detOpened').textContent = b.opening_date || '—';
+    el('detHours').textContent = b.operating_hours || '—';
+    el('detCreated').textContent = b.created_at || '—';
+    el('detUpdated').textContent = b.updated_at || '—';
+    el('detActiveLoans').textContent = s.active_loans != null ? s.active_loans : 0;
+    el('detGross').textContent = 'TZS ' + (s.gross != null ? s.gross : 0).toLocaleString(undefined, {maximumFractionDigits: 0});
+    el('detPar').textContent = (s.par30_pct != null ? s.par30_pct : 0).toFixed(1) + '%';
+    el('detCustomers').textContent = s.customers != null ? s.customers : 0;
+    el('detSavings').textContent = s.savings != null ? s.savings : 0;
+
+    var staffBox = el('detStaff');
+    staffBox.innerHTML = '';
+    (b.staff || []).forEach(function (m) {
+      var row = document.createElement('div');
+      row.className = 'detail-list-item';
+      var sub = (m.job_title || 'Staff') + (m.primary ? ' · Primary branch' : '');
+      row.innerHTML = '<span class="avatar sm">' + (m.name.charAt(0) || '?').toUpperCase() + '</span>' +
+        '<div><div class="cell-title">' + m.name + '</div><div class="cell-sub">' + sub + '</div></div>';
+      staffBox.appendChild(row);
+    });
+    if (!staffBox.childElementCount) staffBox.innerHTML = '<div class="subdued">No staff assigned.</div>';
+
+    var depBox = el('detDepartments');
+    depBox.innerHTML = (b.departments && b.departments.length)
+      ? b.departments.map(function (d) { return '<span class="badge badge-muted">' + d + '</span>'; }).join(' ')
+      : '<span class="subdued">None</span>';
+
+    openModal('branchDetailModal');
+  };
+})();
+</script>
 {% endblock %}
