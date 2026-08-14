@@ -9,6 +9,7 @@ from apps.audit.models import audit
 from apps.common.numbering import next_number
 from apps.credit.models import CreditAssessment, CreditScoreComponent
 from apps.credit.views_helpers import compute_and_store
+from apps.customers.models import Customer
 from apps.loans.forms import CreditAssessmentForm, LoanApplicationForm
 from apps.loans.models import Loan, LoanApplication, LoanApproval
 from apps.loans import services as loan_services
@@ -60,6 +61,13 @@ def loans_page(request):
 
 @login_required
 def loan_application_create(request):
+    initial = {}
+    customer_pk = request.GET.get('customer')
+    if customer_pk:
+        customer = filter_by_scope(request.user, Customer.objects.filter(status='ACTIVE'), 'branch') \
+            .filter(pk=customer_pk).first()
+        if customer:
+            initial['customer'] = customer
     if request.method == 'POST':
         form = LoanApplicationForm(request.POST, user=request.user)
         if form.is_valid():
@@ -78,7 +86,7 @@ def loan_application_create(request):
         messages.error(request, 'Please correct the errors below.')
         context = {'form': form, 'title': 'New Loan Application'}
         return render(request, 'pages/loan_form.html', context)
-    form = LoanApplicationForm(user=request.user)
+    form = LoanApplicationForm(user=request.user, initial=initial)
     return render(request, 'pages/loan_form.html', {'form': form, 'title': 'New Loan Application'})
 
 

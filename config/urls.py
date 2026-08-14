@@ -13,7 +13,7 @@ from apps.cash_management.views import cash_page, session_close, session_open, s
 from apps.collections.views import collection_action_create, collection_action_resolve, collections_page
 from apps.customers.views import (
     customer_detail, customer_document_upload, customer_document_verify, customer_register,
-    customers_page, group_add_member, group_create,
+    customer_edit, customer_toggle_status, customers_page, group_add_member, group_create,
 )
 from apps.loans.views import (
     loan_application_create, loan_application_detail, loan_application_submit, loan_approve,
@@ -40,6 +40,8 @@ urlpatterns = [
     path('customers/', customers_page, name='customers_page'),
     path('customers/register/', customer_register, name='customer_register'),
     path('customers/<int:pk>/', customer_detail, name='customer_detail'),
+    path('customers/<int:pk>/edit/', customer_edit, name='customer_edit'),
+    path('customers/<int:pk>/status/', customer_toggle_status, name='customer_toggle_status'),
     path('customers/<int:pk>/documents/upload/', customer_document_upload, name='customer_document_upload'),
     path('documents/<int:pk>/verify/', customer_document_verify, name='customer_document_verify'),
     path('groups/create/', group_create, name='group_create'),

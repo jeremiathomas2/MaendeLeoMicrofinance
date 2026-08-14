@@ -15,7 +15,7 @@
 <div class="card" style="max-width:920px;">
   <div class="card-head">
     <div>
-      <h3 class="card-title">Customer Registration</h3>
+      <h3 class="card-title">{% if form_action == 'customer_edit' %}Edit Customer{% else %}Customer Registration{% endif %}</h3>
       <p class="card-sub">Personal, financial and KYC details (SRS section 11)</p>
     </div>
   </div>
@@ -27,7 +27,7 @@
   </div>
   {% endif %}
 
-  <form method="post" action="{% url 'customer_register' %}">
+  <form method="post" action="{% if form_action == 'customer_edit' %}{% url 'customer_edit' form.instance.pk %}{% else %}{% url 'customer_register' %}{% endif %}">
     {% csrf_token %}
     <h4 class="form-section-title"><i class="fa-solid fa-user"></i> Personal Information</h4>
     <div class="form-grid">
@@ -56,12 +56,12 @@
       <div class="form-field"><label>Bank name</label>{{ form.bank_name }}</div>
       <div class="form-field"><label>Bank account</label>{{ form.bank_account_number }}</div>
       <div class="form-field"><label>Branch</label>{{ form.branch }}</div>
-      <div class="form-field"><label>Add to group</label>{{ form.group }}</div>
+      {% if form.group %}<div class="form-field"><label>Add to group</label>{{ form.group }}</div>{% endif %}
     </div>
 
     <div class="form-actions">
       <a class="btn btn-outline" href="{% url 'customers_page' %}">Cancel</a>
-      <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Register Customer</button>
+      <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> {% if form_action == 'customer_edit' %}Save Changes{% else %}Register Customer{% endif %}</button>
     </div>
   </form>
 </div>

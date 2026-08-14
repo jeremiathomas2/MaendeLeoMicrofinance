@@ -3,10 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Q
 
+from django.views.decorators.http import require_POST
+
 from apps.accounts.services import filter_by_scope
 from apps.audit.models import audit
 from apps.common.numbering import next_number
-from apps.customers.forms import CustomerDocumentForm, CustomerRegistrationForm, GroupForm
+from apps.customers.forms import CustomerDocumentForm, CustomerEditForm, CustomerRegistrationForm, GroupForm
 from apps.customers.models import Customer, CustomerDocument, CustomerGroup, GroupMember
 from apps.customers.services import build_customer_search
 
@@ -102,6 +104,58 @@ def customer_detail(request, pk):
         'doc_form': CustomerDocumentForm(),
     }
     return render(request, 'pages/customer_detail.html', context)
+
+
+@login_required
+def customer_edit(request, pk):
+    customer = get_object_or_404(
+        filter_by_scope(request.user, Customer.objects.select_related('branch'), 'branch'), pk=pk,
+    )
+    if not _has(request, PERM_REGISTER):
+        messages.error(request, 'You do not have permission to edit customers.')
+        return redirect('customer_detail', pk=customer.pk)
+    if request.method == 'POST':
+        form = CustomerEditForm(request.POST, instance=customer, user=request.user)
+        if form.is_valid():
+            form.save()
+            audit(request.user, 'CUSTOMER_UPDATED', customer, branch=customer.branch,
+                  new={'fields': list(form.changed_data)}, request=request)
+            messages.success(request, f'Customer {customer.customer_number} updated.')
+            return redirect('customer_detail', pk=customer.pk)
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = CustomerEditForm(instance=customer, user=request.user)
+    return render(request, 'pages/customer_form.html', {
+        'form': form,
+        'title': f'Edit {customer.full_name}',
+        'form_action': 'customer_edit',
+    })
+
+
+@login_required
+@require_POST
+def customer_toggle_status(request, pk):
+    customer = get_object_or_404(
+        filter_by_scope(request.user, Customer.objects.all(), 'branch'), pk=pk,
+    )
+    if not _has(request, PERM_REGISTER):
+        messages.error(request, 'You do not have permission to change customer status.')
+        return redirect('customers_page')
+    action = request.POST.get('action', '')
+    if action == 'activate':
+        customer.status = Customer.STATUS_ACTIVE
+    elif action == 'deactivate':
+        customer.status = Customer.STATUS_INACTIVE
+    elif action == 'blacklist':
+        customer.status = Customer.STATUS_BLACKLISTED
+    else:
+        messages.error(request, 'Unknown status action.')
+        return redirect('customers_page')
+    customer.save(update_fields=['status', 'updated_at'])
+    audit(request.user, 'CUSTOMER_UPDATED', customer, branch=customer.branch,
+          new={'status': customer.status}, request=request)
+    messages.success(request, f'{customer.full_name} marked as {customer.get_status_display()}.')
+    return redirect('customers_page')
 
 
 @login_required

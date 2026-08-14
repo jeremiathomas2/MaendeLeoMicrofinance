@@ -153,3 +153,9 @@
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+{% if preselected_customer %}
+<script>window.addEventListener('DOMContentLoaded', function () { openModal('openAccountModal'); });</script>
+{% endif %}
+{% endblock %}

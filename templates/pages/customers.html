@@ -59,7 +59,32 @@
             </td>
             <td>{% if c.risk_rating == 'HIGH' or c.risk_rating == 'CRITICAL' %}<span class="badge badge-danger">{{ c.risk_rating }}</span>{% elif c.risk_rating == 'MEDIUM' %}<span class="badge badge-warning">{{ c.risk_rating }}</span>{% else %}<span class="badge badge-success">{{ c.risk_rating }}</span>{% endif %}</td>
             <td>{% if c.status == 'ACTIVE' %}<span class="badge badge-success">Active</span>{% elif c.status == 'BLACKLISTED' %}<span class="badge badge-danger">Blacklisted</span>{% else %}<span class="badge badge-muted">{{ c.get_status_display }}</span>{% endif %}</td>
-            <td><a class="btn btn-sm btn-outline" href="{% url 'customer_detail' c.pk %}">View</a></td>
+            <td>
+              <div class="row-actions">
+                <a class="btn btn-sm btn-outline" href="{% url 'customer_detail' c.pk %}" title="View"><i class="fa-solid fa-eye"></i></a>
+                {% if can_register %}<a class="btn btn-sm btn-outline" href="{% url 'customer_edit' c.pk %}" title="Edit"><i class="fa-solid fa-pen"></i></a>{% endif %}
+                <a class="btn btn-sm btn-outline" href="{% url 'loan_application_create' %}?customer={{ c.pk }}" title="New loan application"><i class="fa-solid fa-hand-holding-dollar"></i></a>
+                <a class="btn btn-sm btn-outline" href="{% url 'savings_page' %}?customer={{ c.pk }}" title="Open savings account"><i class="fa-solid fa-piggy-bank"></i></a>
+                <a class="btn btn-sm btn-outline" href="{% url 'customer_detail' c.pk %}#docModal" title="Upload document"><i class="fa-solid fa-file-arrow-up"></i></a>
+                {% if can_register %}
+                {% if c.status == 'ACTIVE' %}
+                <form method="post" action="{% url 'customer_toggle_status' c.pk %}" onsubmit="return confirm('Deactivate {{ c.full_name }}?')">
+                  {% csrf_token %}<input type="hidden" name="action" value="deactivate">
+                  <button class="btn btn-sm btn-outline" title="Deactivate"><i class="fa-solid fa-user-slash"></i></button>
+                </form>
+                <form method="post" action="{% url 'customer_toggle_status' c.pk %}" onsubmit="return confirm('Blacklist {{ c.full_name }}?')">
+                  {% csrf_token %}<input type="hidden" name="action" value="blacklist">
+                  <button class="btn btn-sm btn-outline" title="Blacklist"><i class="fa-solid fa-user-xmark"></i></button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'customer_toggle_status' c.pk %}">
+                  {% csrf_token %}<input type="hidden" name="action" value="activate">
+                  <button class="btn btn-sm btn-outline" title="Activate"><i class="fa-solid fa-user-check"></i></button>
+                </form>
+                {% endif %}
+                {% endif %}
+              </div>
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="8"><div class="empty-state"><i class="fa-solid fa-users-slash"></i> No customers found{% if q %} matching "{{ q }}"{% endif %}.</div></td></tr>

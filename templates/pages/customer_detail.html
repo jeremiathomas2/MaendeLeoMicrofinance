@@ -135,3 +135,13 @@
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  if (window.location.hash === '#docModal') {
+    window.addEventListener('DOMContentLoaded', function () { openModal('docModal'); });
+  }
+})();
+</script>
+{% endblock %}
